@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# vibe coding local notes
+master-plan.md
+CLAUDE.md
+.design-reference/
