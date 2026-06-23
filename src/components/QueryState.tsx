@@ -4,12 +4,14 @@ export function QueryState({
   isLoading,
   isError,
   isEmpty,
+  emptyMessage = '표시할 데이터가 없습니다.',
   height = 240,
   children,
 }: {
   isLoading: boolean
   isError: boolean
   isEmpty?: boolean
+  emptyMessage?: string
   height?: number
   children: ReactNode
 }) {
@@ -32,7 +34,7 @@ export function QueryState({
   if (isEmpty) {
     return (
       <div style={{ height }} className="flex items-center justify-center text-sm text-muted">
-        표시할 데이터가 없습니다.
+        {emptyMessage}
       </div>
     )
   }

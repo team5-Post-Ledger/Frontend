@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router'
 import { useCurrentExhibition } from '../../features/exhibition/hooks'
+import { formatDateRange } from '../../lib/format'
 import { useAuthStore } from '../../stores/authStore'
 import type { ExhibitionStatus } from '../../types'
 
@@ -27,20 +28,6 @@ const STATUS_BADGE_CLASS: Record<ExhibitionStatus, string> = {
   DRAFT: 'bg-warning text-white',
   OPEN: 'bg-live text-ink',
   CLOSED: 'bg-line text-muted',
-}
-
-function formatDateRange(startDate: string, endDate: string) {
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-
-  const pad = (value: number) => String(value).padStart(2, '0')
-
-  const startLabel = `${start.getFullYear()}.${pad(start.getMonth() + 1)}.${pad(
-      start.getDate(),
-  )}`
-  const endLabel = `${pad(end.getMonth() + 1)}.${pad(end.getDate())}`
-
-  return `${startLabel} – ${endLabel}`
 }
 
 export function AdminLayout() {

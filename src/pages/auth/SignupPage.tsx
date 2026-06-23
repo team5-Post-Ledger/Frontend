@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { AuthErrorBanner } from '../../components/AuthErrorBanner'
 import { AuthSuccessPanel } from '../../components/AuthSuccessPanel'
 import { AuthTabs } from '../../components/AuthTabs'
+import { Field, fieldControlClass } from '../../components/Field'
 import { usePostAuthRedirect } from '../../hooks/usePostAuthRedirect'
 import { signup } from '../../lib/api/auth'
 import { useAuthStore } from '../../stores/authStore'
@@ -59,10 +60,7 @@ export default function SignupPage() {
       {errorMessage && <AuthErrorBanner message={errorMessage} />}
 
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="signup-email" className="mb-1.5 block text-sm font-semibold text-muted">
-            이메일 <span className="text-danger">*</span>
-          </label>
+        <Field label="이메일" id="signup-email" required>
           <input
             id="signup-email"
             type="email"
@@ -70,13 +68,10 @@ export default function SignupPage() {
             onChange={(event) => setEmail(event.target.value)}
             placeholder="name@email.com"
             autoComplete="email"
-            className="w-full rounded-md border border-line px-3.5 py-2.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className={fieldControlClass}
           />
-        </div>
-        <div>
-          <label htmlFor="signup-password" className="mb-1.5 block text-sm font-semibold text-muted">
-            비밀번호 <span className="text-danger">*</span>
-          </label>
+        </Field>
+        <Field label="비밀번호" id="signup-password" required>
           <input
             id="signup-password"
             type="password"
@@ -84,13 +79,10 @@ export default function SignupPage() {
             onChange={(event) => setPassword(event.target.value)}
             placeholder="8자 이상 입력"
             autoComplete="new-password"
-            className="w-full rounded-md border border-line px-3.5 py-2.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className={fieldControlClass}
           />
-        </div>
-        <div>
-          <label htmlFor="signup-name" className="mb-1.5 block text-sm font-semibold text-muted">
-            이름 <span className="text-danger">*</span>
-          </label>
+        </Field>
+        <Field label="이름" id="signup-name" required>
           <input
             id="signup-name"
             type="text"
@@ -98,13 +90,10 @@ export default function SignupPage() {
             onChange={(event) => setName(event.target.value)}
             placeholder="홍길동"
             autoComplete="name"
-            className="w-full rounded-md border border-line px-3.5 py-2.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className={fieldControlClass}
           />
-        </div>
-        <div>
-          <label htmlFor="signup-phone" className="mb-1.5 block text-sm font-semibold text-muted">
-            전화번호 <span className="text-muted">선택</span>
-          </label>
+        </Field>
+        <Field label="전화번호" id="signup-phone" hint="선택 항목입니다.">
           <input
             id="signup-phone"
             type="tel"
@@ -112,9 +101,9 @@ export default function SignupPage() {
             onChange={(event) => setPhone(event.target.value)}
             placeholder="010-0000-0000"
             autoComplete="tel"
-            className="w-full rounded-md border border-line px-3.5 py-2.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className={fieldControlClass}
           />
-        </div>
+        </Field>
         <button
           type="submit"
           disabled={isLoading}

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { AuthErrorBanner } from '../../components/AuthErrorBanner'
 import { AuthSuccessPanel } from '../../components/AuthSuccessPanel'
 import { AuthTabs } from '../../components/AuthTabs'
+import { Field, fieldControlClass } from '../../components/Field'
 import { usePostAuthRedirect } from '../../hooks/usePostAuthRedirect'
 import { login } from '../../lib/api/auth'
 import { useAuthStore } from '../../stores/authStore'
@@ -52,10 +53,7 @@ export default function LoginPage() {
       {errorMessage && <AuthErrorBanner message={errorMessage} />}
 
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="login-email" className="mb-1.5 block text-sm font-semibold text-muted">
-            이메일
-          </label>
+        <Field label="이메일" id="login-email">
           <input
             id="login-email"
             type="email"
@@ -63,13 +61,10 @@ export default function LoginPage() {
             onChange={(event) => setEmail(event.target.value)}
             placeholder="name@company.com"
             autoComplete="email"
-            className="w-full rounded-md border border-line px-3.5 py-2.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className={fieldControlClass}
           />
-        </div>
-        <div>
-          <label htmlFor="login-password" className="mb-1.5 block text-sm font-semibold text-muted">
-            비밀번호
-          </label>
+        </Field>
+        <Field label="비밀번호" id="login-password">
           <input
             id="login-password"
             type="password"
@@ -77,9 +72,9 @@ export default function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
             placeholder="비밀번호 입력"
             autoComplete="current-password"
-            className="w-full rounded-md border border-line px-3.5 py-2.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className={fieldControlClass}
           />
-        </div>
+        </Field>
         <button
           type="submit"
           disabled={isLoading}

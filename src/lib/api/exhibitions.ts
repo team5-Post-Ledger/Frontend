@@ -30,6 +30,20 @@ const MOCK_EXHIBITIONS: Exhibition[] = [
     createdBy: 1,
     deletedAt: null,
   },
+  {
+    id: 3,
+    title: '2026 부산 푸드테크 박람회',
+    slug: 'busan-foodtech-2026',
+    venue: 'BEXCO 제1전시장',
+    address: '부산광역시 해운대구 APEC로 55',
+    floorMapMeta: null,
+    startDate: '2026-06-20',
+    endDate: '2026-06-26',
+    status: 'OPEN',
+    enforceStaffQualification: false,
+    createdBy: 1,
+    deletedAt: null,
+  },
 ]
 
 export async function getExhibitions(): Promise<Exhibition[]> {
@@ -38,4 +52,8 @@ export async function getExhibitions(): Promise<Exhibition[]> {
 
 export async function getExhibition(id: number): Promise<Exhibition | null> {
   return mockDelay(MOCK_EXHIBITIONS.find((exhibition) => exhibition.id === id) ?? null)
+}
+
+export async function getRecommendedExhibitions(): Promise<Exhibition[]> {
+  return mockDelay(MOCK_EXHIBITIONS.filter((exhibition) => exhibition.status === 'OPEN'))
 }
