@@ -1,25 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  /* 브랜드 */
-  --color-ink: #14181f;        /* 본문 텍스트 (순검정 X) */
-  --color-muted: #5b6472;      /* 보조 텍스트 */
-  --color-line: #e4e7ec;       /* 보더/구분선 */
-  --color-surface: #f9fafb;    /* 옅은 배경 면 */
-  --color-primary: #3730a3;    /* 주요 액션 (indigo) */
-  --color-primary-hover: #312e81;
-  --color-accent: #0ca5a5;     /* 실시간/활성 강조 (혼잡도·SSE 등) */
+  /* 본문/배경 */
+  --color-ink: #0B1320;        /* 본문 텍스트 */
+  --color-muted: #647084;      /* 보조 텍스트 */
+  --color-line: #E4EAF3;       /* 보더/구분선 */
+  --color-surface: #F8FAFF;    /* 옅은 배경 면 */
+  --color-shell: #0B1320;      /* 사이드바·어두운 배경 면 */
+
+  /* 액션/강조 */
+  --color-primary: #007BFF;    /* 주요 액션 (파랑) */
+  --color-primary-hover: #006BE0;
+  --color-accent: #00D1FF;     /* 보조 강조 (시안) */
+  --color-live: #12F7D6;       /* 실시간/진행중 (민트) */
 
   /* 시맨틱 */
   --color-success: #1f9d55;
   --color-warning: #e8a317;
   --color-danger: #d64545;
 
-  /* 타이포 — 한국어 UI 기준 Pretendard */
+  /* 타이포 */
   --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace; /* QR토큰/ID/수치 정렬용 */
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  /* radius */
-  --radius-md: 0.625rem;  /* 버튼/입력 */
-  --radius-lg: 0.875rem;  /* 카드 */
+  /* radius — 각진 디자인 */
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
 }
