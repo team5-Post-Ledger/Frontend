@@ -8,6 +8,10 @@ import SignupPage from '../pages/auth/SignupPage'
 import PrimitivesPreviewPage from '../pages/dev/PrimitivesPreviewPage'
 import ExhibitionDetailPage from '../pages/visitor/ExhibitionDetailPage'
 import HomePage from '../pages/visitor/HomePage'
+import MyReservationDetailPage from '../pages/visitor/my/MyReservationDetailPage'
+import MyReservationsPage from '../pages/visitor/my/MyReservationsPage'
+import MyTabsLayout from '../pages/visitor/my/MyTabsLayout'
+import MyTicketsPage from '../pages/visitor/my/MyTicketsPage'
 import PayPage from '../pages/visitor/PayPage'
 import ReserveAttendeesPage from '../pages/visitor/reserve/ReserveAttendeesPage'
 import ReserveConfirmPage from '../pages/visitor/reserve/ReserveConfirmPage'
@@ -46,7 +50,14 @@ export function AppRouter() {
             <Route path="confirm" element={<ReserveConfirmPage />} />
           </Route>
           <Route path="pay" element={<PayPage />} />
-          <Route path="my/*" element={<Stub label="내 정보" />} />
+          <Route path="my" element={<Navigate to="tickets" replace />} />
+          <Route element={<MyTabsLayout />}>
+            <Route path="my/reservations" element={<MyReservationsPage />} />
+            <Route path="my/tickets" element={<MyTicketsPage />} />
+          </Route>
+          <Route path="my/reservations/:id" element={<MyReservationDetailPage />} />
+          <Route path="my/route" element={<Stub label="내 AI 동선 — 다음 PR에서 구현" />} />
+          <Route path="my/report" element={<Stub label="사후 리포트 — 다음 PR에서 구현" />} />
           <Route path="assistant" element={<Stub label="AI 동선 Q&A" />} />
         </Route>
       </Route>
