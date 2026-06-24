@@ -41,14 +41,17 @@ export default function PayPage() {
   const [result, setResult] = useState<PaymentSubmissionResult | null>(null)
   const submitPaymentMutation = useSubmitPayment()
 
-  useEffect(() => {
-    if (!exhibitionId || !timeSlotId || !ticketTypeId) {
-      navigate('/reserve', { replace: true })
-    }
-  }, [exhibitionId, timeSlotId, ticketTypeId, navigate])
+  const isPaymentComplete = result?.success === true
+  const isMissingReserveDraft = !exhibitionId || !timeSlotId || !ticketTypeId
 
-  if (!exhibitionId || !timeSlotId || !ticketTypeId) {
-    return null
+  useEffect(() => {
+      if (!isPaymentComplete && isMissingReserveDraft) {
+          navigate('/reserve', { replace: true })
+      }
+  }, [isPaymentComplete, isMissingReserveDraft, navigate])
+
+  if (!isPaymentComplete && isMissingReserveDraft) {
+      return null
   }
 
   const ticketType = ticketTypes.data?.find((ticket) => ticket.id === ticketTypeId)
@@ -113,10 +116,10 @@ export default function PayPage() {
         <div className="flex w-full flex-col gap-2.5 sm:flex-row">
           <button
             type="button"
-            onClick={() => handleDone('/my/tickets')}
+            onClick={() => handleDone('/my/reservations')}
             className="flex h-12 flex-1 items-center justify-center bg-primary text-sm font-bold text-white transition-colors hover:bg-primary-hover"
           >
-            내 티켓 확인하기
+              내 예약 확인하기
           </button>
           <button
             type="button"
