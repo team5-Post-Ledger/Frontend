@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getExhibition, getRecommendedExhibitions } from '../../lib/api/exhibitions'
+import { getExhibition, getExhibitions, getRecommendedExhibitions } from '../../lib/api/exhibitions'
 
 const CURRENT_EXHIBITION_ID = 1
 
@@ -14,6 +14,13 @@ export function useRecommendedExhibitions() {
   return useQuery({
     queryKey: ['exhibition', 'recommended'],
     queryFn: getRecommendedExhibitions,
+  })
+}
+
+export function useExhibitions() {
+  return useQuery({
+    queryKey: ['exhibition', 'list'],
+    queryFn: getExhibitions,
   })
 }
 

@@ -74,10 +74,12 @@ const mockMyReservations: MyReservation[] = [
   },
   {
     id: 502,
-    exhibitionId: 2,
-    exhibitionTitle: '2026 친환경 포장재 엑스포',
-    exhibitionVenue: '킨텍스 제2전시장',
-    slotLabel: '10.14(수) 13:00–16:00',
+    // 방문 리포트(§6.13) 시드가 실제 부스 데이터(lib/api/booths.ts)와 조인되도록 박람회 1로 둔다 —
+    // 박람회 2에는 시드된 부스가 없다. attendees/movementMode는 그대로 두고 박람회 컨텍스트만 맞춘다.
+    exhibitionId: 1,
+    exhibitionTitle: '2026 서울 스마트팩토리 박람회',
+    exhibitionVenue: '코엑스 1전시장',
+    slotLabel: '09.01(화) 13:00–16:00',
     movementMode: 'INDIVIDUAL',
     groupSize: 1,
     status: 'CHECKED_IN',

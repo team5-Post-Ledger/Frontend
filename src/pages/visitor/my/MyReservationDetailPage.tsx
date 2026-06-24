@@ -9,6 +9,7 @@ import {
   getReservationCancelBlockReason,
 } from '../../../features/myReservation/cancelEligibility'
 import { useCancelReservation, useCancelReservationAttendees, useMyReservation } from '../../../features/myReservation/hooks'
+import { isReportAvailable } from '../../../features/myReport/reportEligibility'
 import { getCheckinBadge, getCheckinSummary, getPaymentStatusBadge } from '../../../features/reservation/displayStatus'
 import { getReservationCode } from '../../../features/reservation/format'
 import type { MyReservation, MyReservationAttendee } from '../../../lib/api/myReservations'
@@ -220,6 +221,16 @@ export default function MyReservationDetailPage() {
             title={data.exhibitionTitle}
             subtitle={`${data.exhibitionVenue} · ${data.slotLabel}`}
             badge={<span className={`px-2.5 py-1 text-[11px] font-bold ${payBadge.badgeClassName}`}>{payBadge.label}</span>}
+            actions={
+              isReportAvailable(data) ? (
+                <Link
+                  to={`/my/reservations/${data.id}/report`}
+                  className="flex h-9 items-center gap-1.5 border border-line px-3 text-sm font-semibold text-ink transition-colors hover:border-primary hover:text-primary"
+                >
+                  방문 리포트 보기
+                </Link>
+              ) : undefined
+            }
             attributes={[
               { label: '예약번호', value: <span className="font-mono text-xs">{getReservationCode(data.id)}</span> },
               { label: '인원', value: `${data.groupSize}명` },

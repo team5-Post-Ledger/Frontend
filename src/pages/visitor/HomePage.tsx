@@ -1,13 +1,11 @@
 import type { FormEvent, ReactNode } from 'react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { ExhibitionCard } from '../../components/ExhibitionCard'
 import { QueryState } from '../../components/QueryState'
 import { useActiveAds } from '../../features/ads/hooks'
-import { getExhibitionDisplayStatus } from '../../features/exhibition/displayStatus'
 import { useRecommendedExhibitions } from '../../features/exhibition/hooks'
-import { formatDateRange } from '../../lib/format'
 import { useAuthStore } from '../../stores/authStore'
-import type { Exhibition } from '../../types'
 
 function SearchIcon() {
   return (
@@ -88,31 +86,6 @@ const HOW_IT_WORKS = [
   { step: 4, title: 'AI 동선·리포트', body: '동선 추천을 받고, 다녀온 뒤엔 리포트를 확인하세요.' },
 ]
 
-function ExhibitionCard({ exhibition }: { exhibition: Exhibition }) {
-  const status = getExhibitionDisplayStatus(exhibition)
-
-  return (
-    <Link
-      to={`/exhibitions/${exhibition.id}`}
-      className="group block border border-line bg-white transition-colors hover:border-primary"
-    >
-      <div className="relative h-24 bg-[repeating-linear-gradient(45deg,var(--color-line)_0,var(--color-line)_8px,var(--color-surface)_8px,var(--color-surface)_16px)]">
-        <span className={`absolute left-2.5 top-2.5 px-2.5 py-1 text-[11px] font-bold ${status.badgeClassName}`}>
-          {status.label}
-        </span>
-      </div>
-      <div className="p-4">
-        <div className="mb-2 line-clamp-1 text-sm font-bold text-ink">{exhibition.title}</div>
-        <div className="text-xs leading-relaxed text-muted">
-          {formatDateRange(exhibition.startDate, exhibition.endDate)}
-          <br />
-          {exhibition.venue}
-        </div>
-      </div>
-    </Link>
-  )
-}
-
 export default function HomePage() {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
@@ -120,6 +93,7 @@ export default function HomePage() {
 
   const recommended = useRecommendedExhibitions()
   const ads = useActiveAds()
+  const homeRecommendedExhibitions = recommended.data?.slice(0, 6) ?? []
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -189,7 +163,7 @@ export default function HomePage() {
             emptyMessage="추천할 박람회가 아직 없습니다."
           >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {recommended.data?.map((exhibition) => (
+                {homeRecommendedExhibitions.map((exhibition) => (
                 <ExhibitionCard key={exhibition.id} exhibition={exhibition} />
               ))}
             </div>

@@ -32,6 +32,8 @@ export default function ReserveAttendeesPage() {
   const selectIndividualMode = useReserveStore((state) => state.selectIndividualMode)
   const selectGroupMode = useReserveStore((state) => state.selectGroupMode)
   const setGroupSize = useReserveStore((state) => state.setGroupSize)
+  const addAttendee = useReserveStore((state) => state.addAttendee)
+  const removeAttendee = useReserveStore((state) => state.removeAttendee)
   const updateAttendee = useReserveStore((state) => state.updateAttendee)
   const setRepresentative = useReserveStore((state) => state.setRepresentative)
 
@@ -53,6 +55,12 @@ export default function ReserveAttendeesPage() {
   }, [movementMode, isFirstAttendeeBlank, hasAccountInfo, user, selectIndividualMode])
 
   const isNextDisabled = attendees.some((attendee) => !attendee.name.trim() || !attendee.phone.trim())
+
+  // GROUP: 인원수(head_count)는 명단행 수보다 작을 수 없다. INDIVIDUAL: 최소 1명.
+  const minGroupSize = movementMode === 'GROUP' ? Math.max(2, attendees.length) : 1
+  // GROUP은 대표 1명만 필수이고 명단은 선택 — 인원수(head_count)를 넘지 않는 한도까지만 추가 가능.
+  const canAddGroupAttendee = attendees.length < groupSize
+  const canRemoveAttendee = (index: number) => attendees.length > 1 && !attendees[index]?.isGroupLeader
 
   function selfAttendee(isGroupLeader: boolean): ReserveAttendeeDraft {
     // 계정에 이름/전화가 없는 경우(토큰만 있는 경우) 빈 값으로 시작 — 직접 입력 가능
@@ -110,50 +118,70 @@ export default function ReserveAttendeesPage() {
         </div>
       </div>
 
-      {movementMode === 'GROUP' && (
-        <div>
-          <div className="mb-3 text-sm font-bold text-ink">인원수</div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setGroupSize(groupSize - 1)}
-              disabled={groupSize <= 2}
-              className="flex h-11 w-11 items-center justify-center border border-line text-lg font-bold text-ink transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              −
-            </button>
-            <span className="min-w-[40px] text-center text-xl font-extrabold text-ink">{groupSize}</span>
-            <button
-              type="button"
-              onClick={() => setGroupSize(groupSize + 1)}
-              disabled={groupSize >= 10}
-              className="flex h-11 w-11 items-center justify-center border border-line text-lg font-bold text-ink transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              +
-            </button>
-            <span className="text-sm text-muted">명</span>
-          </div>
+      <div>
+        <div className="mb-3 text-sm font-bold text-ink">인원수</div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setGroupSize(groupSize - 1)}
+            disabled={groupSize <= minGroupSize}
+            className="flex h-11 w-11 items-center justify-center border border-line text-lg font-bold text-ink transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            −
+          </button>
+          <span className="min-w-[40px] text-center text-xl font-extrabold text-ink">{groupSize}</span>
+          <button
+            type="button"
+            onClick={() => setGroupSize(groupSize + 1)}
+            className="flex h-11 w-11 items-center justify-center border border-line text-lg font-bold text-ink transition-colors hover:border-primary"
+          >
+            +
+          </button>
+          <span className="text-sm text-muted">명</span>
         </div>
-      )}
+        {movementMode === 'GROUP' && (
+          <p className="mt-2 text-xs leading-relaxed text-muted">
+            대표 QR 1개로 인원수 전체가 함께 입장합니다. 명단은 아는 참석자만 선택적으로 추가하세요.
+          </p>
+        )}
+      </div>
 
       <div>
-        <div className="mb-3 text-sm font-bold text-ink">참석자 명단</div>
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-sm font-bold text-ink">참석자 명단</span>
+          {movementMode === 'GROUP' && (
+            <span className="text-xs text-muted">
+              {attendees.length} / {groupSize}명 등록
+            </span>
+          )}
+        </div>
         <div className="flex flex-col gap-3">
           {attendees.map((attendee, index) => (
             <div key={index} className="border border-line bg-white p-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-xs font-bold text-muted">참석자 {index + 1}</span>
-                {movementMode === 'GROUP' && (
-                  <button
-                    type="button"
-                    onClick={() => setRepresentative(index)}
-                    className={`px-2.5 py-1 text-[11px] font-bold transition-colors ${
-                      attendee.isGroupLeader ? 'bg-ink text-white' : 'border border-line text-muted hover:text-ink'
-                    }`}
-                  >
-                    {attendee.isGroupLeader ? '대표' : '대표로 지정'}
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {movementMode === 'GROUP' && (
+                    <button
+                      type="button"
+                      onClick={() => setRepresentative(index)}
+                      className={`px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                        attendee.isGroupLeader ? 'bg-ink text-white' : 'border border-line text-muted hover:text-ink'
+                      }`}
+                    >
+                      {attendee.isGroupLeader ? '대표' : '대표로 지정'}
+                    </button>
+                  )}
+                  {canRemoveAttendee(index) && (
+                    <button
+                      type="button"
+                      onClick={() => removeAttendee(index)}
+                      className="px-2.5 py-1 text-[11px] font-bold text-muted transition-colors hover:text-danger"
+                    >
+                      삭제
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex flex-col gap-3">
                 <Field label="이름" id={`attendee-${index}-name`} required>
@@ -188,6 +216,18 @@ export default function ReserveAttendeesPage() {
             </div>
           ))}
         </div>
+
+        {movementMode === 'GROUP' && (
+          <button
+            type="button"
+            onClick={() => addAttendee()}
+            disabled={!canAddGroupAttendee}
+            title={canAddGroupAttendee ? undefined : '인원수를 먼저 늘려주세요'}
+            className="mt-3 flex h-11 w-full items-center justify-center border border-dashed border-line text-sm font-bold text-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            + 동행자 정보 추가 (선택)
+          </button>
+        )}
       </div>
 
       <StepperNav onPrev={handlePrev} onNext={handleNext} isNextDisabled={isNextDisabled} nextLabel="다음" />

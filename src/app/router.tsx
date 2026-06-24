@@ -6,8 +6,13 @@ import StatsDashboardPage from '../pages/admin/StatsDashboardPage'
 import LoginPage from '../pages/auth/LoginPage'
 import SignupPage from '../pages/auth/SignupPage'
 import PrimitivesPreviewPage from '../pages/dev/PrimitivesPreviewPage'
+import AssistantPage from '../pages/visitor/AssistantPage'
+import BoothDetailPage from '../pages/visitor/BoothDetailPage'
+import BoothListPage from '../pages/visitor/BoothListPage'
 import ExhibitionDetailPage from '../pages/visitor/ExhibitionDetailPage'
+import ExhibitionListPage from '../pages/visitor/ExhibitionListPage'
 import HomePage from '../pages/visitor/HomePage'
+import MyReportPage from '../pages/visitor/my/MyReportPage'
 import MyReservationDetailPage from '../pages/visitor/my/MyReservationDetailPage'
 import MyReservationsPage from '../pages/visitor/my/MyReservationsPage'
 import MyTabsLayout from '../pages/visitor/my/MyTabsLayout'
@@ -39,9 +44,10 @@ export function AppRouter() {
 
       <Route element={<VisitorLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="exhibitions" element={<Stub label="박람회 목록" />} />
+        <Route path="exhibitions" element={<ExhibitionListPage />} />
         <Route path="exhibitions/:id" element={<ExhibitionDetailPage />} />
-        <Route path="exhibitions/:id/*" element={<Stub label="박람회 하위" />} />
+        <Route path="exhibitions/:id/booths" element={<BoothListPage />} />
+        <Route path="exhibitions/:id/booths/:boothId" element={<BoothDetailPage />} />
 
         <Route element={<ProtectedRoute roles={['VISITOR']} />}>
           <Route path="reserve" element={<ReserveFlowLayout />}>
@@ -56,9 +62,9 @@ export function AppRouter() {
             <Route path="my/tickets" element={<MyTicketsPage />} />
           </Route>
           <Route path="my/reservations/:id" element={<MyReservationDetailPage />} />
+          <Route path="my/reservations/:id/report" element={<MyReportPage />} />
           <Route path="my/route" element={<Stub label="내 AI 동선 — 다음 PR에서 구현" />} />
-          <Route path="my/report" element={<Stub label="사후 리포트 — 다음 PR에서 구현" />} />
-          <Route path="assistant" element={<Stub label="AI 동선 Q&A" />} />
+          <Route path="assistant" element={<AssistantPage />} />
         </Route>
       </Route>
 
