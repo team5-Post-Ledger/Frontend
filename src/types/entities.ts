@@ -68,7 +68,7 @@ export interface Exhibitor {
   companyName: string
   intro: string
   website: string | null
-  accountUserId: number
+  accountUserId: number | null
 }
 
 export interface BoothCategory {

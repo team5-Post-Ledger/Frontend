@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { User } from '../types'
-import { clearToken, getToken, setToken } from '../lib/auth'
+import { clearSession, persistSession, restoreSession } from '../lib/auth'
 
 interface AuthState {
   user: User | null
@@ -9,15 +9,17 @@ interface AuthState {
   logout: () => void
 }
 
+const initialSession = restoreSession()
+
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  token: getToken(),
+  user: initialSession.user,
+  token: initialSession.token,
   login: (user, token) => {
-    setToken(token)
+    persistSession(user, token)
     set({ user, token })
   },
   logout: () => {
-    clearToken()
+    clearSession()
     set({ user: null, token: null })
   },
 }))

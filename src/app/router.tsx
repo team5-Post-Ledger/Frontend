@@ -5,10 +5,15 @@ import CheckinManualPage from '../pages/admin/CheckinManualPage'
 import CheckinOnsitePaymentPage from '../pages/admin/CheckinOnsitePaymentPage'
 import CheckinQrPage from '../pages/admin/CheckinQrPage'
 import CheckinWalkInPage from '../pages/admin/CheckinWalkInPage'
+import ExhibitionDashboardPage from '../pages/admin/ExhibitionDashboardPage'
 import ExhibitionEditPage from '../pages/admin/ExhibitionEditPage'
+import ExhibitorsPage from '../pages/admin/ExhibitorsPage'
 import NameTagsPage from '../pages/admin/NameTagsPage'
+import ReservationDetailPage from '../pages/admin/ReservationDetailPage'
+import ReservationExportPage from '../pages/admin/ReservationExportPage'
 import ReservationsPage from '../pages/admin/ReservationsPage'
 import SessionsPage from '../pages/admin/SessionsPage'
+import StaffPage from '../pages/admin/StaffPage'
 import StatsDashboardPage from '../pages/admin/StatsDashboardPage'
 import TicketTypesPage from '../pages/admin/TicketTypesPage'
 import TimeSlotsPage from '../pages/admin/TimeSlotsPage'
@@ -83,7 +88,11 @@ export function AppRouter() {
       <Route element={<AdminLayout />}>
         <Route element={<ProtectedRoute roles={['EXPO_ADMIN']} />}>
           <Route path="admin/reservations" element={<ReservationsPage />} />
+          <Route path="admin/reservations/export" element={<ReservationExportPage />} />
+          <Route path="admin/reservations/:id" element={<ReservationDetailPage />} />
           <Route path="admin/booths" element={<BoothsPage />} />
+          <Route path="admin/exhibitors" element={<ExhibitorsPage />} />
+          <Route path="admin/staff" element={<StaffPage />} />
           <Route path="admin/checkin" element={<CheckinHubPage />}>
             <Route index element={<Navigate to="qr" replace />} />
             <Route path="qr" element={<CheckinQrPage />} />
@@ -93,6 +102,7 @@ export function AppRouter() {
           </Route>
           <Route path="admin/nametags" element={<NameTagsPage />} />
           <Route path="admin/exhibitions/:id/edit" element={<ExhibitionEditPage />} />
+          <Route path="admin/exhibitions/:id" element={<ExhibitionDashboardPage />} />
           <Route path="admin/sessions" element={<SessionsPage />} />
           <Route path="admin/time-slots" element={<TimeSlotsPage />} />
           <Route path="admin/ticket-types" element={<TicketTypesPage />} />
