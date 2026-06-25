@@ -1,5 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
-import { getExhibition, getExhibitions, getRecommendedExhibitions } from '../../lib/api/exhibitions'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  getExhibition,
+  getExhibitions,
+  getRecommendedExhibitions,
+  updateExhibition,
+  type ExhibitionEditInput,
+} from '../../lib/api/exhibitions'
 
 const CURRENT_EXHIBITION_ID = 1
 
@@ -29,5 +35,15 @@ export function useExhibition(id: number | null) {
     queryKey: ['exhibition', id],
     queryFn: () => getExhibition(id as number),
     enabled: id !== null,
+  })
+}
+
+export function useUpdateExhibition() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: number; input: ExhibitionEditInput }) => updateExhibition(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exhibition'] })
+    },
   })
 }

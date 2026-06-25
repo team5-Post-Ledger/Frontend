@@ -1,7 +1,7 @@
 import type { Exhibition } from '../../types'
 import { mockDelay } from './mockClient'
 
-const MOCK_EXHIBITIONS: Exhibition[] = [
+let MOCK_EXHIBITIONS: Exhibition[] = [
   {
     id: 1,
     title: '2026 서울 스마트팩토리 박람회',
@@ -198,4 +198,20 @@ export async function getExhibition(id: number): Promise<Exhibition | null> {
 
 export async function getRecommendedExhibitions(): Promise<Exhibition[]> {
   return mockDelay(MOCK_EXHIBITIONS.filter((exhibition) => exhibition.status === 'OPEN'))
+}
+
+// §5.1 exhibition 컬럼 중 폼으로 수정 가능한 항목만. slug(unique)·floor_map_meta(별도 화면)·
+// id·created_by·deleted_at은 이 입력에서 제외한다.
+export type ExhibitionEditInput = Pick<
+  Exhibition,
+  'title' | 'venue' | 'address' | 'startDate' | 'endDate' | 'status' | 'enforceStaffQualification'
+>
+
+export async function updateExhibition(id: number, input: ExhibitionEditInput): Promise<Exhibition> {
+  const existing = MOCK_EXHIBITIONS.find((exhibition) => exhibition.id === id)
+  if (!existing) throw new Error('Exhibition not found')
+
+  const updated: Exhibition = { ...existing, ...input }
+  MOCK_EXHIBITIONS = MOCK_EXHIBITIONS.map((exhibition) => (exhibition.id === id ? updated : exhibition))
+  return mockDelay(updated)
 }

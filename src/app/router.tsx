@@ -5,6 +5,7 @@ import CheckinManualPage from '../pages/admin/CheckinManualPage'
 import CheckinOnsitePaymentPage from '../pages/admin/CheckinOnsitePaymentPage'
 import CheckinQrPage from '../pages/admin/CheckinQrPage'
 import CheckinWalkInPage from '../pages/admin/CheckinWalkInPage'
+import ExhibitionEditPage from '../pages/admin/ExhibitionEditPage'
 import NameTagsPage from '../pages/admin/NameTagsPage'
 import ReservationsPage from '../pages/admin/ReservationsPage'
 import SessionsPage from '../pages/admin/SessionsPage'
@@ -91,6 +92,7 @@ export function AppRouter() {
             <Route path="onsite-payment" element={<CheckinOnsitePaymentPage />} />
           </Route>
           <Route path="admin/nametags" element={<NameTagsPage />} />
+          <Route path="admin/exhibitions/:id/edit" element={<ExhibitionEditPage />} />
           <Route path="admin/sessions" element={<SessionsPage />} />
           <Route path="admin/time-slots" element={<TimeSlotsPage />} />
           <Route path="admin/ticket-types" element={<TicketTypesPage />} />
