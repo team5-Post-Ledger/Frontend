@@ -170,8 +170,58 @@ const MOCK_RESERVATIONS: ReservationListItem[] = [
     ],
     checkinLogs: [],
   },
+  // 아래 두 건은 /admin/checkin/onsite-payment(현장 결제) 데모용 미결제(PENDING) 건이다.
+  // 인원·티켓 단가가 달라 결제예정금액이 서로 다르다.
+  {
+    id: 486,
+    representativeName: '강태오',
+    representativePhone: '010-8823-1190',
+    groupSize: 1,
+    movementMode: 'INDIVIDUAL',
+    status: 'PENDING',
+    reservationSource: 'ONLINE',
+    amount: 30000,
+    slotLabel: '07.18(금) 10:00',
+    createdAt: '2026-07-11T09:30:00',
+    payment: null,
+    attendees: [{ id: 20, name: '강태오', phone: '010-8823-1190', isGroupLeader: false, checkinStatus: 'NOT_CHECKED_IN' }],
+    checkinLogs: [],
+  },
+  {
+    id: 487,
+    representativeName: '임수아',
+    representativePhone: '010-2290-6634',
+    groupSize: 4,
+    movementMode: 'GROUP',
+    status: 'PENDING',
+    reservationSource: 'ONLINE',
+    amount: 480000,
+    slotLabel: '07.18(금) 13:00',
+    createdAt: '2026-07-11T15:10:00',
+    payment: null,
+    attendees: [{ id: 21, name: '임수아', phone: '010-2290-6634', isGroupLeader: true, checkinStatus: 'NOT_CHECKED_IN' }],
+    checkinLogs: [],
+  },
 ]
 
 export async function getReservations(): Promise<ReservationListItem[]> {
   return mockDelay(MOCK_RESERVATIONS)
+}
+
+// POST /api/checkin/onsite-payment의 목 구현(§5.3 payment, pg_provider=ONSITE). 현장 데스크 결제라
+// PG 콜백처럼 실패를 시뮬레이션하지 않고 항상 성공으로 기록한다. reservation.status는 PENDING→PAID로
+// 전이하고, pg_tx_id는 내부 영수번호를 흉내낸다.
+export async function payReservationOnsite(reservationId: number): Promise<ReservationListItem> {
+  const reservation = MOCK_RESERVATIONS.find((item) => item.id === reservationId)
+  if (!reservation) throw new Error('예약을 찾을 수 없습니다.')
+
+  reservation.status = 'PAID'
+  reservation.payment = {
+    pgProvider: 'ONSITE',
+    pgTxId: `ONSITE-${reservationId}-${Date.now()}`,
+    paidAt: new Date().toISOString(),
+    feeAmount: 0,
+  }
+
+  return mockDelay(reservation)
 }

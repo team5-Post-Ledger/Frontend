@@ -1,8 +1,16 @@
 import { Navigate, Route, Routes } from 'react-router'
 import BoothsPage from '../pages/admin/BoothsPage'
 import CheckinHubPage from '../pages/admin/CheckinHubPage'
+import CheckinManualPage from '../pages/admin/CheckinManualPage'
+import CheckinOnsitePaymentPage from '../pages/admin/CheckinOnsitePaymentPage'
+import CheckinQrPage from '../pages/admin/CheckinQrPage'
+import CheckinWalkInPage from '../pages/admin/CheckinWalkInPage'
+import NameTagsPage from '../pages/admin/NameTagsPage'
 import ReservationsPage from '../pages/admin/ReservationsPage'
+import SessionsPage from '../pages/admin/SessionsPage'
 import StatsDashboardPage from '../pages/admin/StatsDashboardPage'
+import TicketTypesPage from '../pages/admin/TicketTypesPage'
+import TimeSlotsPage from '../pages/admin/TimeSlotsPage'
 import LoginPage from '../pages/auth/LoginPage'
 import SignupPage from '../pages/auth/SignupPage'
 import PrimitivesPreviewPage from '../pages/dev/PrimitivesPreviewPage'
@@ -77,11 +85,15 @@ export function AppRouter() {
           <Route path="admin/booths" element={<BoothsPage />} />
           <Route path="admin/checkin" element={<CheckinHubPage />}>
             <Route index element={<Navigate to="qr" replace />} />
-            <Route path="qr" element={<Stub label="QR 체크인 — 다음 PR에서 구현" />} />
-            <Route path="manual" element={<Stub label="수기 체크인 — 다음 PR에서 구현" />} />
-            <Route path="walk-in" element={<Stub label="워크인 등록 — 다음 PR에서 구현" />} />
-            <Route path="onsite-payment" element={<Stub label="현장 결제 — 다음 PR에서 구현" />} />
+            <Route path="qr" element={<CheckinQrPage />} />
+            <Route path="manual" element={<CheckinManualPage />} />
+            <Route path="walk-in" element={<CheckinWalkInPage />} />
+            <Route path="onsite-payment" element={<CheckinOnsitePaymentPage />} />
           </Route>
+          <Route path="admin/nametags" element={<NameTagsPage />} />
+          <Route path="admin/sessions" element={<SessionsPage />} />
+          <Route path="admin/time-slots" element={<TimeSlotsPage />} />
+          <Route path="admin/ticket-types" element={<TicketTypesPage />} />
           <Route path="admin/stats" element={<StatsDashboardPage />} />
           <Route path="admin/*" element={<Stub label="박람회 운영" />} />
         </Route>
