@@ -1,4 +1,4 @@
-import type { Exhibition } from '../../types'
+import type { Exhibition, ExhibitionAdmin } from '../../types'
 import { mockDelay } from './mockClient'
 
 let MOCK_EXHIBITIONS: Exhibition[] = [
@@ -190,6 +190,24 @@ let MOCK_EXHIBITIONS: Exhibition[] = [
 // DRAFT(미게시)·CLOSED(종료)는 이 목록에서 제외된다.
 export async function getExhibitions(): Promise<Exhibition[]> {
   return mockDelay(MOCK_EXHIBITIONS.filter((exhibition) => exhibition.status === 'OPEN'))
+}
+
+// §5.1 exhibition_admin — EXPO_ADMIN의 행사 배정 매핑(N:M, 한 admin이 여러 행사를 담당할 수 있다).
+// 시드: admin@fairpilot.io(user_id=2, lib/api/auth.ts)가 상태가 다른 행사 3건을 담당.
+const MOCK_EXHIBITION_ADMINS: ExhibitionAdmin[] = [
+  { id: 1, exhibitionId: 1, userId: 2, createdAt: '2026-01-05T09:00:00', updatedAt: '2026-01-05T09:00:00' },
+  { id: 2, exhibitionId: 12, userId: 2, createdAt: '2026-01-05T09:00:00', updatedAt: '2026-01-05T09:00:00' },
+  { id: 3, exhibitionId: 13, userId: 2, createdAt: '2026-01-05T09:00:00', updatedAt: '2026-01-05T09:00:00' },
+]
+
+// "내 담당 행사" 목록(모델 B admin 홈). exhibition_admin 매핑을 거치므로 getExhibitions()(공개 목록,
+// OPEN만)와 달리 DRAFT·CLOSED도 포함한다 — 담당자라면 미게시/종료 행사도 봐야 한다. PLATFORM_ADMIN의
+// 전체 행사 관리(/platform 영역, 이 함수와 무관)와 스코프가 다르다.
+export async function getMyExhibitions(userId: number): Promise<Exhibition[]> {
+  const myExhibitionIds = new Set(
+    MOCK_EXHIBITION_ADMINS.filter((admin) => admin.userId === userId).map((admin) => admin.exhibitionId),
+  )
+  return mockDelay(MOCK_EXHIBITIONS.filter((exhibition) => myExhibitionIds.has(exhibition.id)))
 }
 
 export async function getExhibition(id: number): Promise<Exhibition | null> {

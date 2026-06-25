@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getExhibition,
   getExhibitions,
+  getMyExhibitions,
   getRecommendedExhibitions,
   updateExhibition,
   type ExhibitionEditInput,
 } from '../../lib/api/exhibitions'
+import { useAuthStore } from '../../stores/authStore'
 import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 
 // admin이 currentExhibitionStore에서 고른 "지금 보고 있는 행사"를 따른다(§5.1 exhibition_admin —
@@ -19,6 +21,17 @@ export function useCurrentExhibition() {
     queryKey: ['exhibition', 'current', exhibitionId],
     queryFn: () => getExhibition(exhibitionId as number),
     enabled: exhibitionId !== null,
+  })
+}
+
+// 모델 B admin 홈(ExhibitionPickerPage)이 쓰는 "내 담당 행사" 목록(§5.1 exhibition_admin).
+export function useMyExhibitions() {
+  const userId = useAuthStore((state) => state.user?.id ?? null)
+
+  return useQuery({
+    queryKey: ['exhibition', 'mine', userId],
+    queryFn: () => getMyExhibitions(userId as number),
+    enabled: userId !== null,
   })
 }
 

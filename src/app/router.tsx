@@ -7,6 +7,7 @@ import CheckinQrPage from '../pages/admin/CheckinQrPage'
 import CheckinWalkInPage from '../pages/admin/CheckinWalkInPage'
 import ExhibitionDashboardPage from '../pages/admin/ExhibitionDashboardPage'
 import ExhibitionEditPage from '../pages/admin/ExhibitionEditPage'
+import ExhibitionPickerPage from '../pages/admin/ExhibitionPickerPage'
 import ExhibitorsPage from '../pages/admin/ExhibitorsPage'
 import NameTagsPage from '../pages/admin/NameTagsPage'
 import ReservationDetailPage from '../pages/admin/ReservationDetailPage'
@@ -88,6 +89,7 @@ export function AppRouter() {
 
       <Route element={<AdminLayout />}>
         <Route element={<ProtectedRoute roles={['EXPO_ADMIN']} />}>
+          <Route path="admin" element={<ExhibitionPickerPage />} />
           <Route path="admin/reservations" element={<ReservationsPage />} />
           <Route path="admin/reservations/:id" element={<ReservationDetailPage />} />
           <Route path="admin/booths" element={<BoothsPage />} />
@@ -105,7 +107,7 @@ export function AppRouter() {
           <Route path="admin/stats" element={<StatsDashboardPage />} />
 
           {/* 아래는 useCurrentExhibition()(admin이 고른 "현재 행사")에 의존하는 화면들 — 선택이
-              없으면 RequireCurrentExhibition이 /admin(행사 선택, 다음 작업에서 피커로 교체 예정)으로
+              없으면 RequireCurrentExhibition이 /admin(담당 행사 선택, ExhibitionPickerPage)으로
               보낸다. */}
           <Route element={<RequireCurrentExhibition />}>
             <Route path="admin/reservations/export" element={<ReservationExportPage />} />
@@ -117,7 +119,7 @@ export function AppRouter() {
             <Route path="admin/ticket-types" element={<TicketTypesPage />} />
           </Route>
 
-          <Route path="admin/*" element={<Stub label="행사 선택 — 행사 선택 화면은 다음 작업에서 추가됩니다" />} />
+          <Route path="admin/*" element={<Stub label="이 화면은 아직 준비 중입니다" />} />
         </Route>
         <Route element={<ProtectedRoute roles={['PLATFORM_ADMIN']} />}>
           <Route path="platform/*" element={<Stub label="플랫폼 관리" />} />
