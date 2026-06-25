@@ -5,6 +5,8 @@ import CheckinManualPage from '../pages/admin/CheckinManualPage'
 import CheckinOnsitePaymentPage from '../pages/admin/CheckinOnsitePaymentPage'
 import CheckinQrPage from '../pages/admin/CheckinQrPage'
 import CheckinWalkInPage from '../pages/admin/CheckinWalkInPage'
+import EducationEditPage from '../pages/admin/EducationEditPage'
+import EducationPage from '../pages/admin/EducationPage'
 import ExhibitionDashboardPage from '../pages/admin/ExhibitionDashboardPage'
 import ExhibitionEditPage from '../pages/admin/ExhibitionEditPage'
 import ExhibitionPickerPage from '../pages/admin/ExhibitionPickerPage'
@@ -16,6 +18,7 @@ import ReservationsPage from '../pages/admin/ReservationsPage'
 import SessionsPage from '../pages/admin/SessionsPage'
 import StaffPage from '../pages/admin/StaffPage'
 import StatsDashboardPage from '../pages/admin/StatsDashboardPage'
+import StatsFlowPage from '../pages/admin/StatsFlowPage'
 import TicketTypesPage from '../pages/admin/TicketTypesPage'
 import TimeSlotsPage from '../pages/admin/TimeSlotsPage'
 import LoginPage from '../pages/auth/LoginPage'
@@ -105,6 +108,8 @@ export function AppRouter() {
           <Route path="admin/exhibitions/:id/edit" element={<ExhibitionEditPage />} />
           <Route path="admin/exhibitions/:id" element={<ExhibitionDashboardPage />} />
           <Route path="admin/stats" element={<StatsDashboardPage />} />
+          <Route path="admin/education" element={<EducationPage />} />
+          <Route path="admin/education/:id/edit" element={<EducationEditPage />} />
 
           {/* 아래는 useCurrentExhibition()(admin이 고른 "현재 행사")에 의존하는 화면들 — 선택이
               없으면 RequireCurrentExhibition이 /admin(담당 행사 선택, ExhibitionPickerPage)으로
@@ -117,6 +122,7 @@ export function AppRouter() {
             <Route path="admin/sessions" element={<SessionsPage />} />
             <Route path="admin/time-slots" element={<TimeSlotsPage />} />
             <Route path="admin/ticket-types" element={<TicketTypesPage />} />
+            <Route path="admin/stats/flow" element={<StatsFlowPage />} />
           </Route>
 
           <Route path="admin/*" element={<Stub label="이 화면은 아직 준비 중입니다" />} />

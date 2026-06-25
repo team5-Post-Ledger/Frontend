@@ -15,10 +15,8 @@ interface NavGroup {
   items: NavItem[]
 }
 
-// §10.2 EXPO_ADMIN 화면 중 화면이 실제로 있는 것만 묶는다. 동선흐름(/admin/stats/flow)·
-// LMS(/admin/education*)는 화면 미구현이라 항목을 넣지 않는다(넣으면 Stub로 빠짐) — 화면이
-// 생기면 그때 추가한다. 예약 상세·명단추출도 사이드바에 넣지 않는다(목록 행 클릭·예약관리 내
-// 버튼이 정석 진입로).
+// §10.2 EXPO_ADMIN 화면 중 화면이 실제로 있는 것만 묶는다. 예약 상세·명단추출은 사이드바에
+// 넣지 않는다(목록 행 클릭·예약관리 내 버튼이 정석 진입로).
 const NAV_GROUPS: NavGroup[] = [
   {
     label: '운영',
@@ -46,7 +44,14 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: '분석',
-    items: [{ to: '/admin/stats', label: '통계' }],
+    items: [
+      { to: '/admin/stats', label: '통계' },
+      { to: '/admin/stats/flow', label: '동선 흐름' },
+    ],
+  },
+  {
+    label: '교육',
+    items: [{ to: '/admin/education', label: 'LMS 관리' }],
   },
 ]
 
