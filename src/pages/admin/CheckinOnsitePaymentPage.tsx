@@ -5,6 +5,7 @@ import { getReservationCode } from '../../features/reservation/format'
 import { usePayReservationOnsite, useReservations } from '../../features/reservation/hooks'
 import type { ReservationListItem } from '../../lib/api/reservations'
 import { formatCurrency, formatDateTime } from '../../lib/format'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 
 interface PaidReceipt {
   pgTxId: string
@@ -30,7 +31,8 @@ function CloseIcon() {
 }
 
 export default function CheckinOnsitePaymentPage() {
-  const reservations = useReservations()
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
+  const reservations = useReservations(exhibitionId)
   const payOnsite = usePayReservationOnsite()
 
   const [searchTerm, setSearchTerm] = useState('')

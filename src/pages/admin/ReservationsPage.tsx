@@ -5,6 +5,7 @@ import { getCheckinBadge, getCheckinSummary, getPaymentStatusBadge } from '../..
 import { getReservationCode } from '../../features/reservation/format'
 import { useReservations } from '../../features/reservation/hooks'
 import { formatCurrency } from '../../lib/format'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 import type { ReservationListItem } from '../../lib/api/reservations'
 import type { ReservationStatus } from '../../types'
 
@@ -53,7 +54,8 @@ function DownloadIcon() {
 
 export default function ReservationsPage() {
   const navigate = useNavigate()
-  const reservations = useReservations()
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
+  const reservations = useReservations(exhibitionId)
   const [searchTerm, setSearchTerm] = useState('')
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('ALL')
   const [checkinFilter, setCheckinFilter] = useState<CheckinFilter>('ALL')

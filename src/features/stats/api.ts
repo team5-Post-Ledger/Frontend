@@ -19,7 +19,36 @@ export interface TopBoothStat {
   visitCount: number
 }
 
-export async function getStatsSummary(): Promise<StatsSummary> {
+const EMPTY_STATS_SUMMARY: StatsSummary = {
+  visitCount: 0,
+  visitCountDeltaPct: 0,
+  avgDwellSeconds: 0,
+  paidHeadcount: 0,
+  checkedInHeadcount: 0,
+}
+
+const MOCK_STATS_SUMMARY: Record<number, StatsSummary> = {
+  1: {
+    visitCount: 3820,
+    visitCountDeltaPct: 8.4,
+    avgDwellSeconds: 872,
+    paidHeadcount: 1240,
+    checkedInHeadcount: 843,
+  },
+  3: {
+    visitCount: 1260,
+    visitCountDeltaPct: 3.1,
+    avgDwellSeconds: 645,
+    paidHeadcount: 420,
+    checkedInHeadcount: 286,
+  },
+}
+
+export async function getStatsSummary(exhibitionId: number): Promise<StatsSummary> {
+  if (exhibitionId !== 1) {
+    return mockDelay(MOCK_STATS_SUMMARY[exhibitionId] ?? EMPTY_STATS_SUMMARY)
+  }
+
   return mockDelay({
     visitCount: 3820,
     visitCountDeltaPct: 8.4,
@@ -29,7 +58,26 @@ export async function getStatsSummary(): Promise<StatsSummary> {
   })
 }
 
-export async function getVisitTrend(): Promise<VisitTrendPoint[]> {
+const MOCK_VISIT_TREND: Record<number, VisitTrendPoint[]> = {
+  3: [
+    { hour: '09:00', visitCount: 64 },
+    { hour: '10:00', visitCount: 118 },
+    { hour: '11:00', visitCount: 176 },
+    { hour: '12:00', visitCount: 142 },
+    { hour: '13:00', visitCount: 158 },
+    { hour: '14:00', visitCount: 205 },
+    { hour: '15:00', visitCount: 238 },
+    { hour: '16:00', visitCount: 184 },
+    { hour: '17:00', visitCount: 96 },
+    { hour: '18:00', visitCount: 42 },
+  ],
+}
+
+export async function getVisitTrend(exhibitionId: number): Promise<VisitTrendPoint[]> {
+  if (exhibitionId !== 1) {
+    return mockDelay(MOCK_VISIT_TREND[exhibitionId] ?? [])
+  }
+
   return mockDelay([
     { hour: '09:00', visitCount: 120 },
     { hour: '10:00', visitCount: 340 },
@@ -44,7 +92,21 @@ export async function getVisitTrend(): Promise<VisitTrendPoint[]> {
   ])
 }
 
-export async function getTopBooths(): Promise<TopBoothStat[]> {
+const MOCK_TOP_BOOTHS: Record<number, TopBoothStat[]> = {
+  3: [
+    { boothId: 13, name: 'Q-Robot Cooking Zone', visitCount: 214 },
+    { boothId: 17, name: 'FoodTech AI Demo', visitCount: 186 },
+    { boothId: 15, name: 'Plant-Based Tasting', visitCount: 144 },
+    { boothId: 16, name: 'Smart Kitchen IoT', visitCount: 121 },
+    { boothId: 19, name: 'Q-Robot B2B Desk', visitCount: 87 },
+  ],
+}
+
+export async function getTopBooths(exhibitionId: number): Promise<TopBoothStat[]> {
+  if (exhibitionId !== 1) {
+    return mockDelay(MOCK_TOP_BOOTHS[exhibitionId] ?? [])
+  }
+
   return mockDelay([
     { boothId: 12, name: 'AI Factory', visitCount: 482 },
     { boothId: 31, name: '그린팩', visitCount: 417 },
@@ -91,6 +153,14 @@ const FLOW_NODES: BoothFlowNode[] = [
   { boothId: 24, name: '바이오헬스랩' },
 ]
 
+const FOOD_TECH_FLOW_NODES: BoothFlowNode[] = [
+  { boothId: 13, name: 'Q-Robot Cooking Zone' },
+  { boothId: 17, name: 'FoodTech AI Demo' },
+  { boothId: 15, name: 'Plant-Based Tasting' },
+  { boothId: 16, name: 'Smart Kitchen IoT' },
+  { boothId: 19, name: 'Q-Robot B2B Desk' },
+]
+
 const MOCK_BOOTH_FLOW: Record<number, BoothFlowSummary> = {
   1: {
     nodes: FLOW_NODES,
@@ -114,6 +184,25 @@ const MOCK_BOOTH_FLOW: Record<number, BoothFlowSummary> = {
     ],
     autoExitCount: 312,
     totalExitCount: 845,
+  },
+  3: {
+    nodes: FOOD_TECH_FLOW_NODES,
+    transitions: [
+      { fromBoothId: 13, toBoothId: 17, count: 42 },
+      { fromBoothId: 13, toBoothId: 15, count: 31 },
+      { fromBoothId: 17, toBoothId: 16, count: 36 },
+      { fromBoothId: 17, toBoothId: 19, count: 24 },
+      { fromBoothId: 15, toBoothId: 16, count: 29 },
+      { fromBoothId: 16, toBoothId: 19, count: 18 },
+      { fromBoothId: 19, toBoothId: 13, count: 12 },
+    ],
+    topRoutes: [
+      { boothIds: [13, 17, 16], count: 34 },
+      { boothIds: [13, 15, 16, 19], count: 27 },
+      { boothIds: [17, 19, 13], count: 16 },
+    ],
+    autoExitCount: 84,
+    totalExitCount: 286,
   },
 }
 

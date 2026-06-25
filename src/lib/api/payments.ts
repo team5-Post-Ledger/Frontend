@@ -1,5 +1,10 @@
 import type { MovementMode } from '../../types'
+import { formatSlotRange } from '../../features/timeSlot/format'
+import { createPaidReservation } from './mockDb'
+import { getExhibition } from './exhibitions'
 import { mockDelay } from './mockClient'
+import { getTicketTypes } from './ticketTypes'
+import { getTimeSlots } from './timeSlots'
 
 export interface PaymentAttendeeInput {
   name: string
@@ -28,8 +33,6 @@ export interface PaymentSubmissionResult {
   failureReason?: string
 }
 
-let nextReservationId = 1000
-
 export async function submitPayment(input: PaymentSubmissionInput): Promise<PaymentSubmissionResult> {
   /**
    * TODO(포트원 연동 지점): 백엔드 PG 연동이 준비되면 이 함수 본문을 아래 흐름으로 교체한다.
@@ -48,16 +51,37 @@ export async function submitPayment(input: PaymentSubmissionInput): Promise<Paym
     )
   }
 
-  const reservationId = nextReservationId++
+  const [exhibition, timeSlots, ticketTypes] = await Promise.all([
+    getExhibition(input.exhibitionId),
+    getTimeSlots(input.exhibitionId),
+    getTicketTypes(input.exhibitionId),
+  ])
+  const timeSlot = timeSlots.find((slot) => slot.id === input.timeSlotId)
+  const ticketType = ticketTypes.find((ticket) => ticket.id === input.ticketTypeId)
+  const created = createPaidReservation({
+    userId: 1,
+    exhibitionId: input.exhibitionId,
+    timeSlotId: input.timeSlotId,
+    ticketTypeId: input.ticketTypeId,
+    movementMode: input.movementMode,
+    groupSize: input.groupSize,
+    attendees: input.attendees,
+    amount: input.amount,
+    exhibitionTitle: exhibition?.title ?? '박람회',
+    exhibitionVenue: exhibition?.venue ?? '-',
+    slotLabel: timeSlot ? formatSlotRange(timeSlot.startAt, timeSlot.endAt) : '-',
+    ticketTypeName: ticketType?.name ?? '-',
+    unitPrice: ticketType?.price ?? (input.groupSize > 0 ? Math.floor(input.amount / input.groupSize) : input.amount),
+  })
 
   return mockDelay(
     {
       success: true,
-      reservationId,
-      reservationCode: `RSV-${reservationId}`,
-      pgTxId: `MOCK-${Date.now()}`,
-      paidAt: new Date().toISOString(),
-      amount: input.amount,
+      reservationId: created.reservation.id,
+      reservationCode: `RSV-${created.reservation.id}`,
+      pgTxId: created.payment.pgTxId,
+      paidAt: created.payment.paidAt ?? undefined,
+      amount: created.payment.amount,
     },
     1200,
   )

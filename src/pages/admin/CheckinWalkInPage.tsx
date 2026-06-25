@@ -97,8 +97,8 @@ export default function CheckinWalkInPage() {
   }
 
   function handleConfirmPayment() {
-    if (paymentAmount === null || recordPayment.isPending) return
-    recordPayment.mutate(paymentAmount, {
+    if (!walkInResult || paymentAmount === null || recordPayment.isPending) return
+    recordPayment.mutate({ reservationId: walkInResult.reservationId, amount: paymentAmount }, {
       onSuccess: (result) => {
         setPaidAt(result.paidAt)
         setPhase('nametag')
@@ -115,7 +115,7 @@ export default function CheckinWalkInPage() {
       {
         attendeeId: walkInResult.primaryAttendeeId,
         nameTagToken: token,
-        options: { checkinMethod: 'WALK_IN' },
+        options: { checkinMethod: 'WALK_IN', reservationId: walkInResult.reservationId },
       },
       {
         onSuccess: (result) => {

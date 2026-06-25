@@ -5,6 +5,7 @@ import { Stepper, type StepperStep } from '../../components/Stepper'
 import { useBindNameTag, useVerifyTicketQr } from '../../features/checkin/hooks'
 import type { CheckinMethod } from '../../types'
 import type { TicketVerifyResult } from '../../lib/api/checkin'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 
 const STEPS: StepperStep[] = [
   { key: 'ticket', label: '티켓 확인' },
@@ -17,6 +18,7 @@ interface BindOutcome {
 }
 
 export default function CheckinQrPage() {
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
   const [step, setStep] = useState<'ticket' | 'nametag'>('ticket')
   const [attendee, setAttendee] = useState<TicketVerifyResult | null>(null)
   const [ticketDraft, setTicketDraft] = useState('')
@@ -25,7 +27,7 @@ export default function CheckinQrPage() {
   const [tagError, setTagError] = useState<string | null>(null)
   const [bindOutcome, setBindOutcome] = useState<BindOutcome | null>(null)
 
-  const verifyTicket = useVerifyTicketQr()
+  const verifyTicket = useVerifyTicketQr(exhibitionId)
   const bindNameTag = useBindNameTag()
 
   function handleTicketScan(rawToken: string) {
@@ -53,7 +55,7 @@ export default function CheckinQrPage() {
 
     setTagError(null)
     bindNameTag.mutate(
-      { attendeeId: attendee.attendeeId, nameTagToken: token },
+      { attendeeId: attendee.attendeeId, nameTagToken: token, options: { reservationId: attendee.reservationId } },
       {
         onSuccess: (result) => {
           if (!result.ok) {

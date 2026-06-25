@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router'
 import { QueryState } from '../../components/QueryState'
 import { CHECKIN_METHOD_LABEL, formatMinutesAgo } from '../../features/checkin/format'
 import { useRecentCheckins } from '../../features/checkin/hooks'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 
 const TABS = [
   { to: 'qr', label: 'QR 체크인' },
@@ -11,7 +12,8 @@ const TABS = [
 ]
 
 export default function CheckinHubPage() {
-  const recentCheckins = useRecentCheckins()
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
+  const recentCheckins = useRecentCheckins(exhibitionId)
 
   return (
     <div className="flex flex-col gap-5">

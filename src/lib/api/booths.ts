@@ -257,8 +257,8 @@ export async function getBoothCategories(): Promise<BoothCategory[]> {
   return mockDelay(MOCK_CATEGORIES)
 }
 
-export async function getBooths(): Promise<Booth[]> {
-  return mockDelay(mockBooths)
+export async function getBooths(exhibitionId?: number): Promise<Booth[]> {
+  return mockDelay(exhibitionId === undefined ? mockBooths : mockBooths.filter((booth) => booth.exhibitionId === exhibitionId))
 }
 
 export async function getBoothsByExhibition(exhibitionId: number): Promise<Booth[]> {
@@ -271,14 +271,15 @@ export async function getBoothEmbeddings(): Promise<BoothEmbedding[]> {
 
 export type BoothInput = Omit<Booth, 'id' | 'exhibitionId'>
 
-export async function createBooth(input: BoothInput): Promise<Booth> {
-  const booth: Booth = { id: nextBoothId++, exhibitionId: 1, ...input }
+export async function createBooth(input: BoothInput, exhibitionId = 1): Promise<Booth> {
+  const booth: Booth = { id: nextBoothId++, exhibitionId, ...input }
   mockBooths = [...mockBooths, booth]
   return mockDelay(booth)
 }
 
-export async function updateBooth(id: number, input: BoothInput): Promise<Booth> {
-  const booth: Booth = { id, exhibitionId: 1, ...input }
+export async function updateBooth(id: number, input: BoothInput, exhibitionId?: number): Promise<Booth> {
+  const existing = mockBooths.find((booth) => booth.id === id)
+  const booth: Booth = { id, exhibitionId: exhibitionId ?? existing?.exhibitionId ?? 1, ...input }
   mockBooths = mockBooths.map((existing) => (existing.id === id ? booth : existing))
   return mockDelay(booth)
 }

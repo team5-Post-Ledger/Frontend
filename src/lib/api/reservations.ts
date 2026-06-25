@@ -9,6 +9,13 @@ import type {
   ReservationStatus,
 } from '../../types'
 import { mockDelay } from './mockClient'
+import {
+  getMockPaymentByReservationId,
+  getMockReservationAttendees,
+  getMockReservations,
+  type MockReservationAttendeeRecord,
+  type MockReservationRecord,
+} from './mockDb'
 
 export interface ReservationAttendeeView {
   id: number
@@ -59,6 +66,7 @@ export interface ReservationListItem {
 // checkin_log.checked_in_by_user_id(§5.4)는 이 목 데이터 전체에서 단일 운영 계정(id=1, lib/api/checkin.ts의
 // CURRENT_STAFF_USER_ID·lib/api/nameTags.ts의 issuedByUserId와 동일)만 사용한다 — 표시용 이름만 고정.
 const CHECKIN_PROCESSOR_NAME = '김태형(EXPO_ADMIN)'
+const ADMIN_SEED_EXHIBITION_ID = 1
 
 const MOCK_RESERVATIONS: ReservationListItem[] = [
   {
@@ -365,12 +373,67 @@ const MOCK_RESERVATIONS: ReservationListItem[] = [
   },
 ]
 
-export async function getReservations(): Promise<ReservationListItem[]> {
-  return mockDelay(MOCK_RESERVATIONS)
+function toReservationAttendeeView(attendee: MockReservationAttendeeRecord): ReservationAttendeeView {
+  return {
+    id: attendee.id,
+    name: attendee.name,
+    phone: attendee.phone,
+    isGroupLeader: attendee.isGroupLeader,
+    checkinStatus: attendee.checkinStatus,
+    attendeeStatus: attendee.attendeeStatus,
+    checkedInAt: attendee.checkedInAt,
+  }
 }
 
-export async function getReservationDetail(id: number): Promise<ReservationListItem | null> {
-  return mockDelay(MOCK_RESERVATIONS.find((item) => item.id === id) ?? null)
+function toReservationListItem(reservation: MockReservationRecord): ReservationListItem {
+  const attendees = getMockReservationAttendees().filter((attendee) => attendee.reservationId === reservation.id && attendee.deletedAt === null)
+  const representative = attendees.find((attendee) => attendee.isGroupLeader) ?? attendees[0]
+  const payment = getMockPaymentByReservationId(reservation.id)
+
+  return {
+    id: reservation.id,
+    representativeName: representative?.name ?? '-',
+    representativePhone: representative?.phone ?? null,
+    exhibitionTitle: reservation.exhibitionTitle,
+    ticketTypeName: reservation.ticketTypeName,
+    groupSize: reservation.groupSize,
+    movementMode: reservation.movementMode,
+    status: reservation.status,
+    reservationSource: reservation.reservationSource,
+    amount: payment?.amount ?? reservation.groupSize * reservation.unitPrice,
+    slotLabel: reservation.slotLabel,
+    createdAt: reservation.createdAt,
+    payment: payment
+      ? {
+          pgProvider: payment.pgProvider,
+          pgTxId: payment.pgTxId,
+          amount: payment.amount,
+          feeAmount: payment.feeAmount,
+          status: payment.status,
+          paidAt: payment.paidAt,
+        }
+      : null,
+    attendees: attendees.map(toReservationAttendeeView),
+    checkinLogs: [],
+  }
+}
+
+function getReservationItems(exhibitionId?: number): ReservationListItem[] {
+  const seedReservations = exhibitionId === undefined || exhibitionId === ADMIN_SEED_EXHIBITION_ID ? MOCK_RESERVATIONS : []
+  const sharedReservations = getMockReservations()
+    .filter((reservation) => reservation.deletedAt === null)
+    .filter((reservation) => exhibitionId === undefined || reservation.exhibitionId === exhibitionId)
+    .map(toReservationListItem)
+
+  return [...sharedReservations, ...seedReservations]
+}
+
+export async function getReservations(exhibitionId?: number): Promise<ReservationListItem[]> {
+  return mockDelay(getReservationItems(exhibitionId))
+}
+
+export async function getReservationDetail(id: number, exhibitionId?: number): Promise<ReservationListItem | null> {
+  return mockDelay(getReservationItems(exhibitionId).find((item) => item.id === id) ?? null)
 }
 
 // GET /api/exhibitions/{id}/reservations/export(§6.3)는 참석자(reservation_attendee) 단위로 추출한다.

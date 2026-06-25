@@ -11,8 +11,11 @@ import {
   type BoothInput,
 } from '../../lib/api/booths'
 
-export function useBooths() {
-  return useQuery({ queryKey: ['booths', 'list'], queryFn: getBooths })
+export function useBooths(exhibitionId?: number | null) {
+  return useQuery({
+    queryKey: ['booths', 'list', exhibitionId ?? 'all'],
+    queryFn: () => getBooths(exhibitionId ?? undefined),
+  })
 }
 
 export function useBoothsByExhibition(exhibitionId: number | null) {
@@ -31,20 +34,20 @@ export function useBoothEmbeddings() {
   return useQuery({ queryKey: ['booths', 'embeddings'], queryFn: getBoothEmbeddings })
 }
 
-export function useCreateBooth() {
+export function useCreateBooth(exhibitionId?: number | null) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (input: BoothInput) => createBooth(input),
+    mutationFn: (input: BoothInput) => createBooth(input, exhibitionId ?? undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booths'] })
     },
   })
 }
 
-export function useUpdateBooth() {
+export function useUpdateBooth(exhibitionId?: number | null) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, input }: { id: number; input: BoothInput }) => updateBooth(id, input),
+    mutationFn: ({ id, input }: { id: number; input: BoothInput }) => updateBooth(id, input, exhibitionId ?? undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booths'] })
     },

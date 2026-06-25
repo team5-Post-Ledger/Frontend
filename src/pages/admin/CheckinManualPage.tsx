@@ -5,6 +5,7 @@ import { QRScanner } from '../../components/QRScanner'
 import { Stepper, type StepperStep } from '../../components/Stepper'
 import { useBindNameTag, useSearchAttendees } from '../../features/checkin/hooks'
 import type { AttendeeSearchCandidate } from '../../lib/api/checkin'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 import type { CheckinMethod } from '../../types'
 
 const STEPS: StepperStep[] = [
@@ -41,6 +42,7 @@ function CandidateCard({ candidate, onSelect }: { candidate: AttendeeSearchCandi
 }
 
 export default function CheckinManualPage() {
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
   const [phase, setPhase] = useState<'search' | 'nametag'>('search')
 
   const [nameInput, setNameInput] = useState('')
@@ -55,7 +57,7 @@ export default function CheckinManualPage() {
   const [tagError, setTagError] = useState<string | null>(null)
   const [bindOutcome, setBindOutcome] = useState<BindOutcome | null>(null)
 
-  const searchAttendees = useSearchAttendees()
+  const searchAttendees = useSearchAttendees(exhibitionId)
   const bindNameTag = useBindNameTag()
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
@@ -100,7 +102,7 @@ export default function CheckinManualPage() {
       {
         attendeeId: selected.attendeeId,
         nameTagToken: token,
-        options: { checkinMethod: 'MANUAL_SEARCH', memo: memo.trim() || undefined },
+        options: { checkinMethod: 'MANUAL_SEARCH', memo: memo.trim() || undefined, reservationId: selected.reservationId },
       },
       {
         onSuccess: (result) => {

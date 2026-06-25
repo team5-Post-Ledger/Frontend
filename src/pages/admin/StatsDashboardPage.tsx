@@ -6,6 +6,7 @@ import { QueryState } from '../../components/QueryState'
 import { StatCard } from '../../components/StatCard'
 import { useCongestionLive } from '../../features/congestion/hooks'
 import { useStatsSummary, useTopBooths, useVisitTrend } from '../../features/stats/hooks'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 
 function formatDwell(seconds: number) {
   const minutes = Math.floor(seconds / 60)
@@ -34,12 +35,13 @@ function DwellIcon() {
 }
 
 export default function StatsDashboardPage() {
-  const summary = useStatsSummary()
-  const visitTrend = useVisitTrend()
-  const topBooths = useTopBooths()
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
+  const summary = useStatsSummary(exhibitionId)
+  const visitTrend = useVisitTrend(exhibitionId)
+  const topBooths = useTopBooths(exhibitionId)
   const congestion = useCongestionLive()
 
-  const conversionRate = summary.data
+  const conversionRate = summary.data && summary.data.paidHeadcount > 0
     ? Math.round((summary.data.checkedInHeadcount / summary.data.paidHeadcount) * 100)
     : null
 

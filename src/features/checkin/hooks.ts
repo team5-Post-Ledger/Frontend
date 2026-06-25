@@ -12,26 +12,26 @@ import {
   type WalkInInput,
 } from '../../lib/api/checkin'
 
-export function useRecentCheckins() {
+export function useRecentCheckins(exhibitionId?: number | null) {
   return useQuery({
-    queryKey: ['checkin', 'recent'],
-    queryFn: getRecentCheckins,
+    queryKey: ['checkin', 'recent', exhibitionId ?? 'all'],
+    queryFn: () => getRecentCheckins(exhibitionId ?? undefined),
   })
 }
 
-export function useCheckinLogs(limit?: number) {
+export function useCheckinLogs(limit?: number, exhibitionId?: number | null) {
   return useQuery({
-    queryKey: ['checkin', 'logs', limit ?? 10],
-    queryFn: () => getCheckinLogs(limit),
+    queryKey: ['checkin', 'logs', limit ?? 10, exhibitionId ?? 'all'],
+    queryFn: () => getCheckinLogs(limit, exhibitionId ?? undefined),
   })
 }
 
-export function useVerifyTicketQr() {
-  return useMutation({ mutationFn: (token: string) => verifyTicketQr(token) })
+export function useVerifyTicketQr(exhibitionId?: number | null) {
+  return useMutation({ mutationFn: (token: string) => verifyTicketQr(token, exhibitionId ?? undefined) })
 }
 
-export function useSearchAttendees() {
-  return useMutation({ mutationFn: (query: AttendeeSearchQuery) => searchAttendees(query) })
+export function useSearchAttendees(exhibitionId?: number | null) {
+  return useMutation({ mutationFn: (query: AttendeeSearchQuery) => searchAttendees(query, exhibitionId ?? undefined) })
 }
 
 export function useBindNameTag() {
@@ -60,5 +60,7 @@ export function useCreateWalkInReservation() {
 }
 
 export function useRecordOnsitePayment() {
-  return useMutation({ mutationFn: (amount: number) => recordOnsitePayment(amount) })
+  return useMutation({
+    mutationFn: ({ reservationId, amount }: { reservationId: number; amount: number }) => recordOnsitePayment(reservationId, amount),
+  })
 }

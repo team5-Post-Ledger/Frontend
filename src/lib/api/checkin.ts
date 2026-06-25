@@ -1,5 +1,12 @@
 import type { CheckinMethod, CheckinStatus, MovementMode } from '../../types'
 import { mockDelay } from './mockClient'
+import {
+  checkInReservationAttendeeRecord,
+  createOnsitePaymentForReservation,
+  createWalkInReservationRecord,
+  getMockReservationAttendees,
+  getMockReservations,
+} from './mockDb'
 import { findActiveIssuedNameTagForAttendee, findNameTagByToken, markNameTagIssued, markNameTagRevoked } from './nameTags'
 
 export interface RecentCheckinView {
@@ -19,8 +26,8 @@ const MOCK_RECENT_CHECKINS: RecentCheckinView[] = [
   { id: 5, attendeeName: '윤참가', groupSize: 4, movementMode: 'GROUP', checkinMethod: 'WALK_IN', minutesAgo: 7 },
 ]
 
-export async function getRecentCheckins(): Promise<RecentCheckinView[]> {
-  return mockDelay(MOCK_RECENT_CHECKINS)
+export async function getRecentCheckins(exhibitionId?: number): Promise<RecentCheckinView[]> {
+  return mockDelay(exhibitionId === undefined || exhibitionId === 1 ? MOCK_RECENT_CHECKINS : [])
 }
 
 // 입구 바인딩(§3.3 2-스캔)이 참조하는 attendee 디렉터리. exhibitionId/이름은 lib/api/reservations.ts와
@@ -36,6 +43,7 @@ interface MockCheckinAttendee {
   movementMode: MovementMode
   groupSize: number
   checkinStatus: CheckinStatus
+  checkedInAt?: string | null
 }
 
 let mockCheckinAttendees: MockCheckinAttendee[] = [
@@ -55,8 +63,46 @@ let mockCheckinAttendees: MockCheckinAttendee[] = [
   { attendeeId: 21, exhibitionId: 1, reservationId: 491, name: '김민준', phone: '010-4821-9012', ticketQrToken: 'TICKET-QR-021', isGroupLeader: false, movementMode: 'INDIVIDUAL', groupSize: 1, checkinStatus: 'NOT_CHECKED_IN' },
 ]
 
+function getSharedMockDbCheckinAttendees(): MockCheckinAttendee[] {
+  const reservationsById = new Map(getMockReservations().map((reservation) => [reservation.id, reservation]))
+
+  return getMockReservationAttendees()
+    .filter((attendee) => attendee.deletedAt === null)
+    .flatMap((attendee) => {
+      const reservation = reservationsById.get(attendee.reservationId)
+      if (!reservation || reservation.deletedAt !== null) return []
+
+      return [
+        {
+          attendeeId: attendee.id,
+          exhibitionId: attendee.exhibitionId,
+          reservationId: attendee.reservationId,
+          name: attendee.name,
+          phone: attendee.phone ?? '',
+          ticketQrToken: attendee.ticketQrToken,
+          isGroupLeader: attendee.isGroupLeader,
+          movementMode: reservation.movementMode,
+          groupSize: reservation.groupSize,
+          checkinStatus: attendee.checkinStatus,
+        },
+      ]
+    })
+}
+
+function getCheckinAttendees(exhibitionId?: number): MockCheckinAttendee[] {
+  const attendees = [...mockCheckinAttendees, ...getSharedMockDbCheckinAttendees()]
+  return exhibitionId === undefined ? attendees : attendees.filter((attendee) => attendee.exhibitionId === exhibitionId)
+}
+
+function findCheckinAttendeeById(attendeeId: number, reservationId?: number): MockCheckinAttendee | undefined {
+  return getCheckinAttendees().find(
+    (attendee) => attendee.attendeeId === attendeeId && (reservationId === undefined || attendee.reservationId === reservationId),
+  )
+}
+
 export interface TicketVerifyResult {
   attendeeId: number
+  reservationId: number
   name: string
   phone: string
   movementMode: MovementMode
@@ -67,14 +113,15 @@ export interface TicketVerifyResult {
 }
 
 // POST /api/checkin/nametag의 1단계(모바일 티켓 QR 검증)에 해당하는 목 구현(§3.3, §6.4).
-export async function verifyTicketQr(token: string): Promise<TicketVerifyResult | null> {
-  const attendee = mockCheckinAttendees.find((item) => item.ticketQrToken === token)
+export async function verifyTicketQr(token: string, exhibitionId?: number): Promise<TicketVerifyResult | null> {
+  const attendee = getCheckinAttendees(exhibitionId).find((item) => item.ticketQrToken === token)
   if (!attendee) return mockDelay(null)
 
   const activeTag = await findActiveIssuedNameTagForAttendee(attendee.attendeeId)
 
   return mockDelay({
     attendeeId: attendee.attendeeId,
+    reservationId: attendee.reservationId,
     name: attendee.name,
     phone: attendee.phone,
     movementMode: attendee.movementMode,
@@ -93,6 +140,7 @@ export interface AttendeeSearchQuery {
 
 export interface AttendeeSearchCandidate {
   attendeeId: number
+  reservationId: number
   name: string
   phone: string
   reservationCode: string
@@ -106,14 +154,14 @@ export interface AttendeeSearchCandidate {
 // /admin/checkin/manual의 1단계(이름/전화/예약번호 조회)에 해당하는 목 구현(§5.3 reservation·
 // reservation_attendee의 name/phone 기준). 조건은 입력된 필드끼리 AND로 좁혀진다 — 동명이인은
 // 전화 뒷자리나 예약번호로 구분한다.
-export async function searchAttendees(query: AttendeeSearchQuery): Promise<AttendeeSearchCandidate[]> {
+export async function searchAttendees(query: AttendeeSearchQuery, exhibitionId?: number): Promise<AttendeeSearchCandidate[]> {
   const name = query.name?.trim().toLowerCase()
   const phoneDigits = query.phone?.replace(/[^0-9]/g, '')
   const reservationCode = query.reservationCode?.trim().toLowerCase()
 
   if (!name && !phoneDigits && !reservationCode) return mockDelay([])
 
-  const matches = mockCheckinAttendees.filter((attendee) => {
+  const matches = getCheckinAttendees(exhibitionId).filter((attendee) => {
     if (name && !attendee.name.toLowerCase().includes(name)) return false
     if (phoneDigits && !attendee.phone.replace(/[^0-9]/g, '').includes(phoneDigits)) return false
     if (reservationCode && !`r-${attendee.reservationId}`.includes(reservationCode)) return false
@@ -123,6 +171,7 @@ export async function searchAttendees(query: AttendeeSearchQuery): Promise<Atten
   const candidates = await Promise.all(
     matches.map(async (attendee) => ({
       attendeeId: attendee.attendeeId,
+      reservationId: attendee.reservationId,
       name: attendee.name,
       phone: attendee.phone,
       reservationCode: `R-${attendee.reservationId}`,
@@ -136,9 +185,6 @@ export async function searchAttendees(query: AttendeeSearchQuery): Promise<Atten
 
   return mockDelay(candidates)
 }
-
-let nextWalkInReservationId = 900
-let nextWalkInAttendeeId = 100
 
 export interface WalkInInput {
   name: string
@@ -166,8 +212,22 @@ export interface WalkInResult {
 // GROUP은 대표 1행만 생성하고(명단행은 이 화면에서 받지 않는다), INDIVIDUAL은 group_size만큼 N행을
 // 생성한다(등록자 본인 외 동행은 실명을 받지 않으므로 "동행 N"으로 구분한다).
 export async function createWalkInReservation(exhibitionId: number, input: WalkInInput): Promise<WalkInResult> {
-  const reservationId = nextWalkInReservationId++
-  const attendees: WalkInAttendeeSummary[] = []
+  const { reservation, attendees: createdAttendees } = createWalkInReservationRecord({
+    exhibitionId,
+    ticketTypeId: input.ticketTypeId,
+    movementMode: input.movementMode,
+    groupSize: input.groupSize,
+    name: input.name,
+    phone: input.phone,
+  })
+  const attendees = createdAttendees.map((attendee) => ({
+    attendeeId: attendee.id,
+    name: attendee.name,
+    isGroupLeader: attendee.isGroupLeader,
+  }))
+
+  return mockDelay({ reservationId: reservation.id, attendees, primaryAttendeeId: attendees[0].attendeeId })
+  /*
 
   if (input.movementMode === 'GROUP') {
     const attendeeId = nextWalkInAttendeeId++
@@ -210,7 +270,7 @@ export async function createWalkInReservation(exhibitionId: number, input: WalkI
     }
   }
 
-  return mockDelay({ reservationId, attendees, primaryAttendeeId: attendees[0].attendeeId })
+  */
 }
 
 export interface OnsitePaymentResult {
@@ -221,11 +281,12 @@ export interface OnsitePaymentResult {
 
 // POST /api/checkin/onsite-payment의 목 구현(§3.x 워크인 플로우 C-4 앞부분). 현장 데스크에서 직접
 // 확인하는 결제라 PG 콜백처럼 실패를 시뮬레이션하지 않고 항상 성공으로 기록한다.
-export async function recordOnsitePayment(amount: number): Promise<OnsitePaymentResult> {
+export async function recordOnsitePayment(reservationId: number, amount: number): Promise<OnsitePaymentResult> {
+  const payment = createOnsitePaymentForReservation(reservationId, amount)
   return mockDelay({
-    amount,
-    paidAt: new Date().toISOString(),
-    pgTxId: `ONSITE-${Date.now()}`,
+    amount: payment.amount,
+    paidAt: payment.paidAt ?? new Date().toISOString(),
+    pgTxId: payment.pgTxId,
   })
 }
 
@@ -265,8 +326,12 @@ function appendCheckinLog(input: {
   return log
 }
 
-export async function getCheckinLogs(limit = 10): Promise<CheckinLogView[]> {
-  return mockDelay(mockCheckinLogs.slice(0, limit))
+export async function getCheckinLogs(limit = 10, exhibitionId?: number): Promise<CheckinLogView[]> {
+  const logs =
+    exhibitionId === undefined
+      ? mockCheckinLogs
+      : mockCheckinLogs.filter((log) => findCheckinAttendeeById(log.attendeeId)?.exhibitionId === exhibitionId)
+  return mockDelay(logs.slice(0, limit))
 }
 
 export type BindNameTagErrorCode = 'TAG_NOT_FOUND' | 'TAG_REVOKED' | 'TAG_ISSUED_TO_OTHER'
@@ -295,6 +360,7 @@ export interface BindNameTagOptions {
   // 수기 체크인 등에서 운영자가 직접 남기는 사유. 시스템이 남기는 자동 메모(재바인딩/멱등 처리 안내)와는
   // 합쳐서 기록한다.
   memo?: string | null
+  reservationId?: number
 }
 
 function combineMemo(autoNote: string | null, manualMemo?: string | null): string | null {
@@ -308,8 +374,20 @@ function combineMemo(autoNote: string | null, manualMemo?: string | null): strin
 // - 같은 attendee에게 이미 바인딩된 태그를 다시 스캔하면 멱등 처리한다.
 // - attendee가 이미 CHECKED_IN 상태에서 새 AVAILABLE 태그를 바인딩하면 기존 ISSUED 태그를 자동
 //   REVOKED 처리하고 REISSUE로 기록한다(GATE ENTRY 없음). 그 외에는 첫 바인딩으로 GATE ENTRY를 기록한다.
+function markAttendeeCheckedIn(attendeeId: number, reservationId?: number, checkedInAt = new Date().toISOString()) {
+  mockCheckinAttendees = mockCheckinAttendees.map((item) =>
+    item.attendeeId === attendeeId && (reservationId === undefined || item.reservationId === reservationId)
+      ? { ...item, checkinStatus: 'CHECKED_IN', checkedInAt }
+      : item,
+  )
+
+  if (reservationId !== undefined) {
+    checkInReservationAttendeeRecord(attendeeId, reservationId, checkedInAt)
+  }
+}
+
 export async function bindNameTag(attendeeId: number, nameTagToken: string, options: BindNameTagOptions = {}): Promise<BindNameTagResult> {
-  const attendee = mockCheckinAttendees.find((item) => item.attendeeId === attendeeId)
+  const attendee = findCheckinAttendeeById(attendeeId, options.reservationId)
   const tag = await findNameTagByToken(nameTagToken)
   const firstBindMethod = options.checkinMethod ?? 'QR_SELF'
 
@@ -327,6 +405,8 @@ export async function bindNameTag(attendeeId: number, nameTagToken: string, opti
 
   // 같은 attendee에게 이미 바인딩된 태그를 다시 스캔 — 멱등 처리(§6.4 바인딩 가드).
   if (tag.status === 'ISSUED' && tag.attendeeId === attendeeId) {
+    const checkedInAt = new Date().toISOString()
+    markAttendeeCheckedIn(attendeeId, options.reservationId, checkedInAt)
     const log = appendCheckinLog({
       attendeeId,
       attendeeName,
@@ -346,9 +426,7 @@ export async function bindNameTag(attendeeId: number, nameTagToken: string, opti
   const boundTag = await markNameTagIssued(tag.id, attendeeId, CURRENT_STAFF_USER_ID)
 
   if (!isReissue) {
-    mockCheckinAttendees = mockCheckinAttendees.map((item) =>
-      item.attendeeId === attendeeId ? { ...item, checkinStatus: 'CHECKED_IN' } : item,
-    )
+    markAttendeeCheckedIn(attendeeId, options.reservationId)
   }
 
   const checkinMethod = isReissue ? 'REISSUE' : firstBindMethod

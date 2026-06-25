@@ -7,6 +7,7 @@ import { getReservationCode } from '../../features/reservation/format'
 import { useReservationDetail } from '../../features/reservation/hooks'
 import type { CheckinLogView, ReservationAttendeeView, ReservationListItem } from '../../lib/api/reservations'
 import { formatCurrency, formatDateTime } from '../../lib/format'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 import type { AttendeeStatus, PaymentStatus } from '../../types'
 
 const ATTENDEE_STATUS_BADGE: Record<AttendeeStatus, { label: string; className: string } | null> = {
@@ -170,8 +171,9 @@ function ReservationDetailView({ data }: { data: ReservationListItem }) {
 export default function ReservationDetailPage() {
   const { id } = useParams<{ id: string }>()
   const reservationId = id ? Number(id) : null
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
 
-  const reservation = useReservationDetail(reservationId)
+  const reservation = useReservationDetail(reservationId, exhibitionId)
 
   if (reservationId === null) {
     return <p className="text-sm text-danger">잘못된 예약 경로입니다.</p>

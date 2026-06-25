@@ -8,17 +8,17 @@ import {
   type ReservationAttendeeExportFilters,
 } from '../../lib/api/reservations'
 
-export function useReservations() {
+export function useReservations(exhibitionId?: number | null) {
   return useQuery({
-    queryKey: ['reservations', 'list'],
-    queryFn: getReservations,
+    queryKey: ['reservations', 'list', exhibitionId ?? 'all'],
+    queryFn: () => getReservations(exhibitionId ?? undefined),
   })
 }
 
-export function useReservationDetail(id: number | null) {
+export function useReservationDetail(id: number | null, exhibitionId?: number | null) {
   return useQuery({
-    queryKey: ['reservations', 'detail', id],
-    queryFn: () => getReservationDetail(id as number),
+    queryKey: ['reservations', 'detail', id, exhibitionId ?? 'all'],
+    queryFn: () => getReservationDetail(id as number, exhibitionId ?? undefined),
     enabled: id !== null,
   })
 }

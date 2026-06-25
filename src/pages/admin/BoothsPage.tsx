@@ -14,6 +14,7 @@ import {
 import { useExhibitors } from '../../features/exhibitor/hooks'
 import type { BoothInput } from '../../lib/api/booths'
 import { formatDateTime } from '../../lib/format'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 import type { Booth, BoothCategory, BoothEmbedding, Exhibitor } from '../../types'
 
 type EditingTarget = 'new' | number | null
@@ -81,12 +82,14 @@ function BoothEditorPanel({
   categories,
   exhibitors,
   embedding,
+  exhibitionId,
   onClose,
 }: {
   booth: Booth | null
   categories: BoothCategory[]
   exhibitors: Exhibitor[]
   embedding: BoothEmbedding | null
+  exhibitionId: number | null
   onClose: () => void
 }) {
   const isNew = booth === null
@@ -94,8 +97,8 @@ function BoothEditorPanel({
   const [errors, setErrors] = useState<BoothFormErrors>({})
   const [justRegenerated, setJustRegenerated] = useState(false)
 
-  const createBoothMutation = useCreateBooth()
-  const updateBoothMutation = useUpdateBooth()
+  const createBoothMutation = useCreateBooth(exhibitionId)
+  const updateBoothMutation = useUpdateBooth(exhibitionId)
   const deleteBoothMutation = useDeleteBooth()
   const regenerateEmbeddingMutation = useRegenerateBoothEmbedding()
 
@@ -350,7 +353,8 @@ function BoothEditorPanel({
 }
 
 export default function BoothsPage() {
-  const booths = useBooths()
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
+  const booths = useBooths(exhibitionId)
   const categories = useBoothCategories()
   const exhibitors = useExhibitors()
   const embeddings = useBoothEmbeddings()
@@ -522,6 +526,7 @@ export default function BoothsPage() {
             categories={categories.data ?? []}
             exhibitors={exhibitors.data ?? []}
             embedding={editingBooth ? embeddingByBoothId.get(editingBooth.id) ?? null : null}
+            exhibitionId={exhibitionId}
             onClose={() => setEditingTarget(null)}
           />
         )}
