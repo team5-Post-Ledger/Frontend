@@ -77,7 +77,7 @@ export function AppRouter() {
             <Route path="confirm" element={<ReserveConfirmPage />} />
           </Route>
           <Route path="pay" element={<PayPage />} />
-          <Route path="my" element={<Navigate to="tickets" replace />} />
+          <Route path="my" element={<Navigate to="reservations" replace />} />
           <Route element={<MyTabsLayout />}>
             <Route path="my/reservations" element={<MyReservationsPage />} />
             <Route path="my/tickets" element={<MyTicketsPage />} />
