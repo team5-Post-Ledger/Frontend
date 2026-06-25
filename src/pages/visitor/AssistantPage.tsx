@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { fieldControlClass } from '../../components/Field'
-import { useCurrentExhibition } from '../../features/exhibition/hooks'
+import { useExhibition } from '../../features/exhibition/hooks'
 import { useAskAssistant } from '../../features/assistant/hooks'
 import type { CitedBooth } from '../../lib/api/assistant'
 import { useAssistantStore, type AssistantChatMessage } from '../../stores/assistantStore'
@@ -101,7 +101,9 @@ function RouteRedirectCard() {
 }
 
 export default function AssistantPage() {
-  const exhibition = useCurrentExhibition()
+  // 방문자의 "현재 행사"는 admin의 currentExhibitionStore(담당 행사 선택)와 무관하다 — 지금은
+  // 고정 1번 행사를 본다. 추후 URL 파라미터/예약 컨텍스트 기반으로 교체될 자리다.
+  const exhibition = useExhibition(1)
   const exhibitionId = exhibition.data?.id ?? null
 
   // 채팅 상태는 assistantStore(in-memory zustand)에서 가져온다 — /assistant를 벗어났다가

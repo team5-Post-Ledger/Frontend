@@ -39,6 +39,7 @@ import ReserveConfirmPage from '../pages/visitor/reserve/ReserveConfirmPage'
 import ReserveFlowLayout from '../pages/visitor/reserve/ReserveFlowLayout'
 import ReserveSelectPage from '../pages/visitor/reserve/ReserveSelectPage'
 import { ProtectedRoute } from './guards/ProtectedRoute'
+import { RequireCurrentExhibition } from './guards/RequireCurrentExhibition'
 import { AdminLayout } from './layouts/AdminLayout'
 import { AuthLayout } from './layouts/AuthLayout'
 import { MobileLayout } from './layouts/MobileLayout'
@@ -88,26 +89,35 @@ export function AppRouter() {
       <Route element={<AdminLayout />}>
         <Route element={<ProtectedRoute roles={['EXPO_ADMIN']} />}>
           <Route path="admin/reservations" element={<ReservationsPage />} />
-          <Route path="admin/reservations/export" element={<ReservationExportPage />} />
           <Route path="admin/reservations/:id" element={<ReservationDetailPage />} />
           <Route path="admin/booths" element={<BoothsPage />} />
-          <Route path="admin/exhibitors" element={<ExhibitorsPage />} />
-          <Route path="admin/staff" element={<StaffPage />} />
           <Route path="admin/checkin" element={<CheckinHubPage />}>
             <Route index element={<Navigate to="qr" replace />} />
             <Route path="qr" element={<CheckinQrPage />} />
             <Route path="manual" element={<CheckinManualPage />} />
-            <Route path="walk-in" element={<CheckinWalkInPage />} />
+            <Route element={<RequireCurrentExhibition />}>
+              <Route path="walk-in" element={<CheckinWalkInPage />} />
+            </Route>
             <Route path="onsite-payment" element={<CheckinOnsitePaymentPage />} />
           </Route>
-          <Route path="admin/nametags" element={<NameTagsPage />} />
           <Route path="admin/exhibitions/:id/edit" element={<ExhibitionEditPage />} />
           <Route path="admin/exhibitions/:id" element={<ExhibitionDashboardPage />} />
-          <Route path="admin/sessions" element={<SessionsPage />} />
-          <Route path="admin/time-slots" element={<TimeSlotsPage />} />
-          <Route path="admin/ticket-types" element={<TicketTypesPage />} />
           <Route path="admin/stats" element={<StatsDashboardPage />} />
-          <Route path="admin/*" element={<Stub label="박람회 운영" />} />
+
+          {/* 아래는 useCurrentExhibition()(admin이 고른 "현재 행사")에 의존하는 화면들 — 선택이
+              없으면 RequireCurrentExhibition이 /admin(행사 선택, 다음 작업에서 피커로 교체 예정)으로
+              보낸다. */}
+          <Route element={<RequireCurrentExhibition />}>
+            <Route path="admin/reservations/export" element={<ReservationExportPage />} />
+            <Route path="admin/exhibitors" element={<ExhibitorsPage />} />
+            <Route path="admin/staff" element={<StaffPage />} />
+            <Route path="admin/nametags" element={<NameTagsPage />} />
+            <Route path="admin/sessions" element={<SessionsPage />} />
+            <Route path="admin/time-slots" element={<TimeSlotsPage />} />
+            <Route path="admin/ticket-types" element={<TicketTypesPage />} />
+          </Route>
+
+          <Route path="admin/*" element={<Stub label="행사 선택 — 행사 선택 화면은 다음 작업에서 추가됩니다" />} />
         </Route>
         <Route element={<ProtectedRoute roles={['PLATFORM_ADMIN']} />}>
           <Route path="platform/*" element={<Stub label="플랫폼 관리" />} />

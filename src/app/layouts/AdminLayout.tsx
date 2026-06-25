@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router'
 import { useCurrentExhibition } from '../../features/exhibition/hooks'
 import { formatDateRange } from '../../lib/format'
 import { useAuthStore } from '../../stores/authStore'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 import type { ExhibitionStatus } from '../../types'
 
 const NAV_ITEMS = [
@@ -33,6 +34,7 @@ const STATUS_BADGE_CLASS: Record<ExhibitionStatus, string> = {
 export function AdminLayout() {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
   const exhibition = useCurrentExhibition()
 
   return (
@@ -93,7 +95,9 @@ export function AdminLayout() {
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-line bg-white px-6">
             <div className="flex min-w-0 items-center gap-3">
-              {exhibition.isLoading ? (
+              {exhibitionId === null ? (
+                  <span className="text-sm text-muted">행사를 선택해주세요.</span>
+              ) : exhibition.isLoading ? (
                   <span className="text-sm text-muted">불러오는 중...</span>
               ) : exhibition.isError || !exhibition.data ? (
                   <span className="text-sm text-muted">행사 정보를 불러오지 못했습니다.</span>

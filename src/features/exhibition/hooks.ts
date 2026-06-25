@@ -6,13 +6,19 @@ import {
   updateExhibition,
   type ExhibitionEditInput,
 } from '../../lib/api/exhibitions'
+import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 
-const CURRENT_EXHIBITION_ID = 1
-
+// admin이 currentExhibitionStore에서 고른 "지금 보고 있는 행사"를 따른다(§5.1 exhibition_admin —
+// 한 admin이 여러 행사를 담당할 수 있어 1번을 임의로 기본 노출하지 않는다). 선택이 없으면
+// (exhibitionId=null) 쿼리를 비활성화한다. 방문자 화면은 이 훅을 쓰지 않는다 — useExhibition(id)로
+// 직접 조회한다.
 export function useCurrentExhibition() {
+  const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
+
   return useQuery({
-    queryKey: ['exhibition', 'current', CURRENT_EXHIBITION_ID],
-    queryFn: () => getExhibition(CURRENT_EXHIBITION_ID),
+    queryKey: ['exhibition', 'current', exhibitionId],
+    queryFn: () => getExhibition(exhibitionId as number),
+    enabled: exhibitionId !== null,
   })
 }
 

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { Field, fieldControlClass } from '../../../components/Field'
 import { QueryState } from '../../../components/QueryState'
 import { useBoothsByExhibition } from '../../../features/booth/hooks'
-import { useCurrentExhibition } from '../../../features/exhibition/hooks'
+import { useExhibition } from '../../../features/exhibition/hooks'
 import { useCreateRecommendedRoute, useMyRecommendedRoutes } from '../../../features/route/hooks'
 import type { RecommendedRouteSummary } from '../../../lib/api/recommendedRoutes'
 import { formatDateTime } from '../../../lib/format'
@@ -236,7 +236,9 @@ export default function MyRouteListPage() {
   const navigate = useNavigate()
   const [mobileView, setMobileView] = useState<'list' | 'form'>('list')
 
-  const exhibition = useCurrentExhibition()
+  // 방문자의 "현재 행사"는 admin의 currentExhibitionStore(담당 행사 선택)와 무관하다 — 지금은
+  // 고정 1번 행사를 본다. 추후 URL 파라미터/예약 컨텍스트 기반으로 교체될 자리다.
+  const exhibition = useExhibition(1)
   const exhibitionId = exhibition.data?.id ?? null
   const booths = useBoothsByExhibition(exhibitionId)
   const mustVisitOptions = useMemo(() => (booths.data ?? []).slice(0, MUST_VISIT_OPTION_COUNT), [booths.data])
