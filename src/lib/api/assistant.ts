@@ -17,25 +17,9 @@ export interface AssistantAskInput {
 export interface AssistantAskResult {
   answer: string
   citedBooths: CitedBooth[]
-  // 질문이 동선 추천 의도로 보이면 true. §6.10 동선 미니폼을 펼치라는 신호일 뿐, §6.11 응답 필드는 아니다.
+  // 질문이 동선 추천 의도로 보이면 true. §6.10 /my/route로 유도하는 CTA를 보여주라는 신호일 뿐,
+  // §6.11 응답 필드는 아니다.
   suggestsRoute: boolean
-}
-
-export interface RouteSuggestionStop {
-  visitOrder: number
-  boothId: number
-  boothName: string
-  floor: number
-  posX: number
-  posY: number
-  estMinutes: number
-  reason: string
-}
-
-export interface RouteSuggestionResult {
-  totalEstMinutes: number
-  rationale: string
-  stops: RouteSuggestionStop[]
 }
 
 const ROUTE_INTENT_PATTERN = /동선|루트|경로/
@@ -51,7 +35,7 @@ export async function askAssistant({ exhibitionId, question }: AssistantAskInput
 
   if (ROUTE_INTENT_PATTERN.test(question)) {
     return mockDelay({
-      answer: '동선을 추천해드릴게요. 아래 조건만 확인해 주세요.',
+      answer: "동선 추천은 '내 동선'에서 새로 만들 수 있어요.",
       citedBooths: [],
       suggestsRoute: true,
     })
@@ -80,41 +64,4 @@ export async function askAssistant({ exhibitionId, question }: AssistantAskInput
     citedBooths: fallback.map((booth) => ({ boothId: booth.id, name: booth.name, floor: booth.floor, posX: booth.posX, posY: booth.posY })),
     suggestsRoute: false,
   })
-}
-
-/**
- * "추천 방문 동선" 블록을 채우는 목 데이터. 실제 동선 생성/저장은 §6.10이 담당한다:
- *   - POST /api/recommendations/route  (exhibitionId·interestText·availableMinutes·mustVisitBoothIds → routeId 발급)
- *   - GET  /api/recommendations/me     (저장된 동선을 /my/route 목록에 노출)
- * 지금은 백엔드가 없어 같은 exhibitionId 부스 중 "꼭 갈 부스"를 앞에 배치해 3~4개만 가짜로 보여준다.
- * TODO(§6.10 연동 지점): 백엔드가 준비되면 이 함수 본문을 위 POST 호출로 교체하고,
- * 결과 routeId를 저장(§6.10 GET /api/recommendations/me)해 /my/route에서 조회되게 한다.
- */
-export async function getMockRouteSuggestion(exhibitionId: number, mustVisitBoothIds: number[]): Promise<RouteSuggestionResult> {
-  const booths = await getBoothsByExhibition(exhibitionId)
-  const mustVisit = booths.filter((booth) => mustVisitBoothIds.includes(booth.id))
-  const rest = booths.filter((booth) => !mustVisitBoothIds.includes(booth.id))
-  const picks = [...mustVisit, ...rest].slice(0, 4)
-
-  const stops: RouteSuggestionStop[] = picks.map((booth, index) => ({
-    visitOrder: index + 1,
-    boothId: booth.id,
-    boothName: booth.name,
-    floor: booth.floor,
-    posX: booth.posX,
-    posY: booth.posY,
-    estMinutes: 15 + index * 5,
-    reason: mustVisitBoothIds.includes(booth.id)
-      ? '꼭 갈 부스로 지정하셨어요.'
-      : `관심 태그(${booth.tags[0] ?? booth.name})와 관련도가 높아요.`,
-  }))
-
-  return mockDelay(
-    {
-      totalEstMinutes: stops.reduce((sum, stop) => sum + stop.estMinutes, 0),
-      rationale: '관심사와 가용 시간을 반영해 혼잡도가 낮은 순서로 정렬했습니다.',
-      stops,
-    },
-    900,
-  )
 }

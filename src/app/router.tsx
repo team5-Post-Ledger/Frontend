@@ -15,6 +15,8 @@ import HomePage from '../pages/visitor/HomePage'
 import MyReportPage from '../pages/visitor/my/MyReportPage'
 import MyReservationDetailPage from '../pages/visitor/my/MyReservationDetailPage'
 import MyReservationsPage from '../pages/visitor/my/MyReservationsPage'
+import MyRouteDetailPage from '../pages/visitor/my/MyRouteDetailPage'
+import MyRouteListPage from '../pages/visitor/my/MyRouteListPage'
 import MyTabsLayout from '../pages/visitor/my/MyTabsLayout'
 import MyTicketsPage from '../pages/visitor/my/MyTicketsPage'
 import PayPage from '../pages/visitor/PayPage'
@@ -63,7 +65,8 @@ export function AppRouter() {
           </Route>
           <Route path="my/reservations/:id" element={<MyReservationDetailPage />} />
           <Route path="my/reservations/:id/report" element={<MyReportPage />} />
-          <Route path="my/route" element={<Stub label="내 AI 동선 — 다음 PR에서 구현" />} />
+          <Route path="my/route" element={<MyRouteListPage />} />
+          <Route path="my/route/:routeId" element={<MyRouteDetailPage />} />
           <Route path="assistant" element={<AssistantPage />} />
         </Route>
       </Route>

@@ -3,7 +3,8 @@ import { useAuthStore } from '../../stores/authStore'
 
 const NAV_LINKS = [
   { to: '/exhibitions', label: '박람회' },
-  { to: '/assistant', label: 'AI 동선' },
+  { to: '/my/route', label: 'AI 동선' },
+  { to: '/assistant', label: 'AI 도우미' },
   { to: '/my', label: '내 예약' },
 ]
 
@@ -44,10 +45,19 @@ function UserIcon() {
   )
 }
 
+function ChatIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z" />
+    </svg>
+  )
+}
+
 const TAB_ITEMS = [
   { to: '/', label: '홈', end: true, icon: HomeIcon },
   { to: '/exhibitions', label: '박람회', end: false, icon: ExploreIcon },
-  { to: '/assistant', label: 'AI', end: false, icon: SparkleIcon },
+  { to: '/my/route', label: 'AI 동선', end: false, icon: SparkleIcon },
+  { to: '/assistant', label: 'AI 도우미', end: false, icon: ChatIcon },
   { to: '/my', label: '내정보', end: false, icon: UserIcon },
 ]
 
@@ -122,7 +132,7 @@ export function VisitorLayout() {
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-4 border-t border-line bg-white lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t border-line bg-white lg:hidden">
         {TAB_ITEMS.map((item) => {
           const Icon = item.icon
           return (

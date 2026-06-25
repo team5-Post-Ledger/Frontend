@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { CitedBooth, RouteSuggestionResult } from '../lib/api/assistant'
+import type { CitedBooth } from '../lib/api/assistant'
 
 export interface AssistantChatMessage {
   id: number
@@ -7,8 +7,6 @@ export interface AssistantChatMessage {
   text: string
   citedBooths?: CitedBooth[]
 }
-
-type RouteStage = 'hidden' | 'form' | 'done'
 
 let messageIdSeq = 0
 function nextMessageId() {
@@ -24,19 +22,9 @@ function createInitialMessages(): AssistantChatMessage[] {
 
 interface AssistantState {
   messages: AssistantChatMessage[]
-  routeStage: RouteStage
-  minutes: number
-  selectedCategoryIds: number[]
-  mustVisitIds: number[]
-  routeResult: RouteSuggestionResult | null
-  routeSaved: boolean
+  routeCtaVisible: boolean
   appendMessage: (message: Omit<AssistantChatMessage, 'id'>) => void
-  setRouteStage: (stage: RouteStage) => void
-  setMinutes: (minutes: number) => void
-  toggleCategory: (id: number) => void
-  toggleMustVisit: (id: number) => void
-  applyRouteResult: (result: RouteSuggestionResult) => void
-  toggleRouteSaved: () => void
+  showRouteCta: () => void
 }
 
 // §6.11 "MVP는 무상태"는 서버/DB에 대화 이력을 저장하지 않는다는 뜻이고 그대로 유지된다.
@@ -45,32 +33,9 @@ interface AssistantState {
 // 새로고침하면 그대로 초기화된다.
 export const useAssistantStore = create<AssistantState>((set) => ({
   messages: createInitialMessages(),
-  routeStage: 'hidden',
-  minutes: 90,
-  selectedCategoryIds: [],
-  mustVisitIds: [],
-  routeResult: null,
-  routeSaved: false,
+  routeCtaVisible: false,
 
   appendMessage: (message) => set((state) => ({ messages: [...state.messages, { ...message, id: nextMessageId() }] })),
 
-  setRouteStage: (stage) => set({ routeStage: stage }),
-
-  setMinutes: (minutes) => set({ minutes }),
-
-  toggleCategory: (id) =>
-    set((state) => ({
-      selectedCategoryIds: state.selectedCategoryIds.includes(id)
-        ? state.selectedCategoryIds.filter((categoryId) => categoryId !== id)
-        : [...state.selectedCategoryIds, id],
-    })),
-
-  toggleMustVisit: (id) =>
-    set((state) => ({
-      mustVisitIds: state.mustVisitIds.includes(id) ? state.mustVisitIds.filter((boothId) => boothId !== id) : [...state.mustVisitIds, id],
-    })),
-
-  applyRouteResult: (result) => set({ routeResult: result, routeStage: 'done', routeSaved: false }),
-
-  toggleRouteSaved: () => set((state) => ({ routeSaved: !state.routeSaved })),
+  showRouteCta: () => set({ routeCtaVisible: true }),
 }))
