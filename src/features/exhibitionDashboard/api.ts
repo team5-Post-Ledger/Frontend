@@ -1,4 +1,3 @@
-import { getExhibition } from '../../lib/api/exhibitions'
 import { mockDelay } from '../../lib/api/mockClient'
 import { getReservations, type ReservationListItem } from '../../lib/api/reservations'
 
@@ -28,14 +27,8 @@ function checkedInWeightOf(reservation: ReservationListItem): number {
   return reservation.attendees.filter((attendee) => attendee.attendeeStatus === 'ACTIVE' && attendee.checkinStatus === 'CHECKED_IN').length
 }
 
-// lib/api/reservations.ts의 목 예약에는 exhibition_id 숫자 컬럼이 없고 exhibitionTitle만 있어,
-// 지금은 행사 제목으로 스코프를 좁힌다(이 목 데이터 전체가 실제로는 단일 행사를 가정하고 만들어졌다).
 async function getScopedReservations(exhibitionId: number): Promise<ReservationListItem[]> {
-  const exhibition = await getExhibition(exhibitionId)
-  if (!exhibition) return []
-
-  const reservations = await getReservations()
-  return reservations.filter((reservation) => reservation.exhibitionTitle === exhibition.title)
+  return getReservations(exhibitionId)
 }
 
 // §9.2 정산 지표 그대로 집계한다: 총매출=sum(payment.amount where PAID), 온라인=PAID and

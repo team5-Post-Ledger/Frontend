@@ -4,9 +4,10 @@ import {
   getReservationAttendeeExportRows,
   getReservationDetail,
   getReservations,
-  payReservationOnsite,
   type ReservationAttendeeExportFilters,
+  type ReservationListItem,
 } from '../../lib/api/reservations'
+import { recordReservationOnsitePayment } from '../../lib/api/payments'
 
 export function useReservations(exhibitionId?: number | null) {
   return useQuery({
@@ -26,17 +27,21 @@ export function useReservationDetail(id: number | null, exhibitionId?: number | 
 export function usePayReservationOnsite() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (reservationId: number) => payReservationOnsite(reservationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reservations'] })
+    mutationFn: (reservation: ReservationListItem) => recordReservationOnsitePayment(reservation),
+    onSuccess: (updated) => {
+      queryClient.setQueriesData<ReservationListItem[]>({ queryKey: ['reservations', 'list'] }, (old) =>
+        old ? old.map((item) => (item.id === updated.id ? updated : item)) : old,
+      )
+      queryClient.setQueriesData<ReservationListItem | null>({ queryKey: ['reservations', 'detail', updated.id] }, () => updated)
     },
   })
 }
 
-export function useReservationAttendeeExportPreview(filters: ReservationAttendeeExportFilters) {
+export function useReservationAttendeeExportPreview(exhibitionId: number | null, filters: ReservationAttendeeExportFilters) {
   return useQuery({
-    queryKey: ['reservations', 'export-preview', filters],
-    queryFn: () => getReservationAttendeeExportRows(filters),
+    queryKey: ['reservations', 'export-preview', exhibitionId, filters],
+    queryFn: () => getReservationAttendeeExportRows(exhibitionId as number, filters),
+    enabled: exhibitionId !== null,
   })
 }
 

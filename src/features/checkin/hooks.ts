@@ -34,7 +34,7 @@ export function useSearchAttendees(exhibitionId?: number | null) {
   return useMutation({ mutationFn: (query: AttendeeSearchQuery) => searchAttendees(query, exhibitionId ?? undefined) })
 }
 
-export function useBindNameTag() {
+export function useBindNameTag(exhibitionId?: number | null) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({
@@ -45,7 +45,7 @@ export function useBindNameTag() {
       attendeeId: number
       nameTagToken: string
       options?: BindNameTagOptions
-    }) => bindNameTag(attendeeId, nameTagToken, options),
+    }) => bindNameTag(attendeeId, nameTagToken, { ...options, exhibitionId: exhibitionId ?? undefined }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checkin'] })
       queryClient.invalidateQueries({ queryKey: ['nameTags'] })

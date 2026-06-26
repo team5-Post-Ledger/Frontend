@@ -28,7 +28,7 @@ export default function CheckinQrPage() {
   const [bindOutcome, setBindOutcome] = useState<BindOutcome | null>(null)
 
   const verifyTicket = useVerifyTicketQr(exhibitionId)
-  const bindNameTag = useBindNameTag()
+  const bindNameTag = useBindNameTag(exhibitionId)
 
   function handleTicketScan(rawToken: string) {
     const token = rawToken.trim()

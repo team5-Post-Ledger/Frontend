@@ -56,7 +56,7 @@ export default function CheckinOnsitePaymentPage() {
 
   function handleConfirmPayment() {
     if (!selected || payOnsite.isPending) return
-    payOnsite.mutate(selected.id, {
+    payOnsite.mutate(selected, {
       onSuccess: (updated) => {
         setSelected(updated)
         if (updated.payment) {

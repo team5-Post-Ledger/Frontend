@@ -58,7 +58,7 @@ export default function CheckinManualPage() {
   const [bindOutcome, setBindOutcome] = useState<BindOutcome | null>(null)
 
   const searchAttendees = useSearchAttendees(exhibitionId)
-  const bindNameTag = useBindNameTag()
+  const bindNameTag = useBindNameTag(exhibitionId)
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

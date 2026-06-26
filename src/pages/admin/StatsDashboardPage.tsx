@@ -39,7 +39,7 @@ export default function StatsDashboardPage() {
   const summary = useStatsSummary(exhibitionId)
   const visitTrend = useVisitTrend(exhibitionId)
   const topBooths = useTopBooths(exhibitionId)
-  const congestion = useCongestionLive()
+  const congestion = useCongestionLive(exhibitionId)
 
   const conversionRate = summary.data && summary.data.paidHeadcount > 0
     ? Math.round((summary.data.checkedInHeadcount / summary.data.paidHeadcount) * 100)

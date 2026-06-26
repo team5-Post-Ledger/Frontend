@@ -94,8 +94,8 @@ function getCheckinAttendees(exhibitionId?: number): MockCheckinAttendee[] {
   return exhibitionId === undefined ? attendees : attendees.filter((attendee) => attendee.exhibitionId === exhibitionId)
 }
 
-function findCheckinAttendeeById(attendeeId: number, reservationId?: number): MockCheckinAttendee | undefined {
-  return getCheckinAttendees().find(
+function findCheckinAttendeeById(attendeeId: number, reservationId?: number, exhibitionId?: number): MockCheckinAttendee | undefined {
+  return getCheckinAttendees(exhibitionId).find(
     (attendee) => attendee.attendeeId === attendeeId && (reservationId === undefined || attendee.reservationId === reservationId),
   )
 }
@@ -117,7 +117,7 @@ export async function verifyTicketQr(token: string, exhibitionId?: number): Prom
   const attendee = getCheckinAttendees(exhibitionId).find((item) => item.ticketQrToken === token)
   if (!attendee) return mockDelay(null)
 
-  const activeTag = await findActiveIssuedNameTagForAttendee(attendee.attendeeId)
+  const activeTag = await findActiveIssuedNameTagForAttendee(attendee.attendeeId, attendee.exhibitionId)
 
   return mockDelay({
     attendeeId: attendee.attendeeId,
@@ -179,7 +179,7 @@ export async function searchAttendees(query: AttendeeSearchQuery, exhibitionId?:
       groupSize: attendee.groupSize,
       isGroupLeader: attendee.isGroupLeader,
       checkinStatus: attendee.checkinStatus,
-      hasActiveNameTag: (await findActiveIssuedNameTagForAttendee(attendee.attendeeId)) !== null,
+      hasActiveNameTag: (await findActiveIssuedNameTagForAttendee(attendee.attendeeId, attendee.exhibitionId)) !== null,
     })),
   )
 
@@ -330,7 +330,7 @@ export async function getCheckinLogs(limit = 10, exhibitionId?: number): Promise
   const logs =
     exhibitionId === undefined
       ? mockCheckinLogs
-      : mockCheckinLogs.filter((log) => findCheckinAttendeeById(log.attendeeId)?.exhibitionId === exhibitionId)
+      : mockCheckinLogs.filter((log) => findCheckinAttendeeById(log.attendeeId, undefined, exhibitionId)?.exhibitionId === exhibitionId)
   return mockDelay(logs.slice(0, limit))
 }
 
@@ -361,6 +361,7 @@ export interface BindNameTagOptions {
   // 합쳐서 기록한다.
   memo?: string | null
   reservationId?: number
+  exhibitionId?: number
 }
 
 function combineMemo(autoNote: string | null, manualMemo?: string | null): string | null {
@@ -387,10 +388,13 @@ function markAttendeeCheckedIn(attendeeId: number, reservationId?: number, check
 }
 
 export async function bindNameTag(attendeeId: number, nameTagToken: string, options: BindNameTagOptions = {}): Promise<BindNameTagResult> {
-  const attendee = findCheckinAttendeeById(attendeeId, options.reservationId)
-  const tag = await findNameTagByToken(nameTagToken)
+  const attendee = findCheckinAttendeeById(attendeeId, options.reservationId, options.exhibitionId)
+  const tag = await findNameTagByToken(nameTagToken, options.exhibitionId ?? attendee?.exhibitionId)
   const firstBindMethod = options.checkinMethod ?? 'QR_SELF'
 
+  if (!attendee) {
+    return mockDelay({ ok: false, errorCode: 'TAG_NOT_FOUND', message: '李몄꽍?먮? 李얠쓣 ???놁뒿?덈떎.' })
+  }
   if (!tag) {
     return mockDelay({ ok: false, errorCode: 'TAG_NOT_FOUND', message: '유효하지 않은 네임태그 QR입니다.' })
   }
@@ -401,7 +405,7 @@ export async function bindNameTag(attendeeId: number, nameTagToken: string, opti
     return mockDelay({ ok: false, errorCode: 'TAG_ISSUED_TO_OTHER', message: '이미 다른 참석자에게 발급된 네임태그입니다.' })
   }
 
-  const attendeeName = attendee?.name ?? ''
+  const attendeeName = attendee.name
 
   // 같은 attendee에게 이미 바인딩된 태그를 다시 스캔 — 멱등 처리(§6.4 바인딩 가드).
   if (tag.status === 'ISSUED' && tag.attendeeId === attendeeId) {
@@ -417,7 +421,7 @@ export async function bindNameTag(attendeeId: number, nameTagToken: string, opti
     return mockDelay({ ok: true, checkinMethod: firstBindMethod, gateEntryRecorded: false, log })
   }
 
-  const existingActiveTag = await findActiveIssuedNameTagForAttendee(attendeeId)
+  const existingActiveTag = await findActiveIssuedNameTagForAttendee(attendeeId, options.exhibitionId ?? attendee.exhibitionId)
   const isReissue = existingActiveTag !== null
 
   if (isReissue && existingActiveTag) {

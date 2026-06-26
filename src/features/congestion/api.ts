@@ -22,13 +22,23 @@ const BASE_POINTS: CongestionPoint[] = [
   { type: 'SESSION', pointId: 4, label: '세미나 B', count: 52 },
 ]
 
-export async function getCongestionLive(): Promise<CongestionSnapshot> {
+const POINTS_BY_EXHIBITION_ID: Record<number, CongestionPoint[]> = {
+  1: BASE_POINTS,
+  3: [
+    { type: 'BOOTH', pointId: 13, label: 'Food Robot', count: 22 },
+    { type: 'BOOTH', pointId: 15, label: 'Plant Tasting', count: 16 },
+    { type: 'SESSION', pointId: 11, label: 'Food Tech Stage', count: 31 },
+  ],
+}
+
+export async function getCongestionLive(exhibitionId?: number): Promise<CongestionSnapshot> {
   const jitter = () => Math.floor(Math.random() * 7) - 3
+  const points = exhibitionId === undefined ? BASE_POINTS : POINTS_BY_EXHIBITION_ID[exhibitionId] ?? []
 
   return mockDelay(
     {
       level: '보통',
-      points: BASE_POINTS.map((point) => ({ ...point, count: Math.max(0, point.count + jitter()) })),
+      points: points.map((point) => ({ ...point, count: Math.max(0, point.count + jitter()) })),
       ts: new Date().toISOString(),
     },
     250,

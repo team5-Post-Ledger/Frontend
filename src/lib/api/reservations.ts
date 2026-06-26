@@ -474,9 +474,10 @@ function matchesExportFilters(reservation: ReservationListItem, filters: Reserva
 }
 
 export async function getReservationAttendeeExportRows(
+  exhibitionId: number,
   filters: ReservationAttendeeExportFilters,
 ): Promise<ReservationAttendeeExportRow[]> {
-  const rows = MOCK_RESERVATIONS.filter((reservation) => matchesExportFilters(reservation, filters)).flatMap((reservation) =>
+  const rows = getReservationItems(exhibitionId).filter((reservation) => matchesExportFilters(reservation, filters)).flatMap((reservation) =>
     reservation.attendees
       .filter((attendee) => filters.checkinStatus === 'ALL' || attendee.checkinStatus === filters.checkinStatus)
       .map((attendee) => ({
@@ -507,12 +508,11 @@ export interface ReservationAttendeeExportResult {
 // 백엔드 연동 전까지는 같은 필터로 행 수만 다시 집계해 성공 결과를 흉내낸다 — 엔드포인트가 생기면
 // 이 함수 본문을 실제 파일 다운로드(blob 응답) 처리로 교체한다.
 export async function exportReservationAttendees(
-  // 이 목 데이터는 단일 행사(exhibitionId=1)만 다뤄 필터링에 쓰지 않는다 — 실제 엔드포인트 경로
-  // 형태(/exhibitions/{id}/...)만 맞춰둔다.
-  _exhibitionId: number,
+  // 실제 백엔드는 /api/exhibitions/{id}/reservations/export 경로에서 같은 필터를 적용한다.
+  exhibitionId: number,
   filters: ReservationAttendeeExportFilters,
 ): Promise<ReservationAttendeeExportResult> {
-  const rows = await getReservationAttendeeExportRows(filters)
+  const rows = await getReservationAttendeeExportRows(exhibitionId, filters)
   const fileName = `참석자명단_${new Date().toISOString().slice(0, 10)}.xlsx`
 
   return mockDelay({ fileName, rowCount: rows.length })
@@ -521,19 +521,3 @@ export async function exportReservationAttendees(
 // POST /api/checkin/onsite-payment의 목 구현(§5.3 payment, pg_provider=ONSITE). 현장 데스크 결제라
 // PG 콜백처럼 실패를 시뮬레이션하지 않고 항상 성공으로 기록한다. reservation.status는 PENDING→PAID로
 // 전이하고, pg_tx_id는 내부 영수번호를 흉내낸다.
-export async function payReservationOnsite(reservationId: number): Promise<ReservationListItem> {
-  const reservation = MOCK_RESERVATIONS.find((item) => item.id === reservationId)
-  if (!reservation) throw new Error('예약을 찾을 수 없습니다.')
-
-  reservation.status = 'PAID'
-  reservation.payment = {
-    pgProvider: 'ONSITE',
-    pgTxId: `ONSITE-${reservationId}-${Date.now()}`,
-    amount: reservation.amount,
-    feeAmount: 0,
-    status: 'PAID',
-    paidAt: new Date().toISOString(),
-  }
-
-  return mockDelay(reservation)
-}

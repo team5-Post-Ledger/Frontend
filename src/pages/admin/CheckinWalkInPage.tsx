@@ -51,7 +51,7 @@ export default function CheckinWalkInPage() {
 
   const createWalkIn = useCreateWalkInReservation()
   const recordPayment = useRecordOnsitePayment()
-  const bindNameTag = useBindNameTag()
+  const bindNameTag = useBindNameTag(exhibitionId)
 
   const selectedTicketType = useMemo(
     () => ticketTypes.data?.find((ticket) => ticket.id === form.ticketTypeId) ?? null,

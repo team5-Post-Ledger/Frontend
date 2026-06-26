@@ -23,8 +23,8 @@ let MOCK_EXHIBITORS: Exhibitor[] = [
 let nextExhibitorId = 15
 let nextAccountUserId = 901
 
-export async function getExhibitors(): Promise<Exhibitor[]> {
-  return mockDelay(MOCK_EXHIBITORS)
+export async function getExhibitors(exhibitionId?: number): Promise<Exhibitor[]> {
+  return mockDelay(exhibitionId === undefined ? MOCK_EXHIBITORS : MOCK_EXHIBITORS.filter((exhibitor) => exhibitor.exhibitionId === exhibitionId))
 }
 
 // §5.2 exhibitor 컬럼 중 폼으로 입력하는 항목만. id·exhibition_id는 생성 시 정해지고, account_user_id는

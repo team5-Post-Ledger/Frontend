@@ -92,13 +92,16 @@ export async function createNameTagBatch(exhibitionId: number, count: number): P
 
 // 아래는 lib/api/checkin.ts의 입구 바인딩(§3.3 2-스캔) 플로우가 사용하는 저수준 함수다.
 // 가드 판단(AVAILABLE 아니면 거부 등)은 checkin.ts가 수행하고, 여기서는 단순 조회/상태 변경만 한다.
-export async function findNameTagByToken(token: string): Promise<NameTag | null> {
-  return mockDelay(mockNameTags.find((tag) => tag.token === token) ?? null)
+export async function findNameTagByToken(token: string, exhibitionId?: number): Promise<NameTag | null> {
+  return mockDelay(mockNameTags.find((tag) => tag.token === token && (exhibitionId === undefined || tag.exhibitionId === exhibitionId)) ?? null)
 }
 
 // attendee당 활성 ISSUED 태그(있다면 1건)를 찾는다 — 재바인딩 시 자동 REVOKED 대상 판별용(§3.3).
-export async function findActiveIssuedNameTagForAttendee(attendeeId: number): Promise<NameTag | null> {
-  return mockDelay(mockNameTags.find((tag) => tag.attendeeId === attendeeId && tag.status === 'ISSUED') ?? null)
+export async function findActiveIssuedNameTagForAttendee(attendeeId: number, exhibitionId?: number): Promise<NameTag | null> {
+  return mockDelay(
+    mockNameTags.find((tag) => tag.attendeeId === attendeeId && tag.status === 'ISSUED' && (exhibitionId === undefined || tag.exhibitionId === exhibitionId)) ??
+      null,
+  )
 }
 
 export async function markNameTagIssued(tagId: number, attendeeId: number, issuedByUserId: number): Promise<NameTag> {

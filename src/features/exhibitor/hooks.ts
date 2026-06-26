@@ -7,10 +7,10 @@ import {
   type ExhibitorInput,
 } from '../../lib/api/exhibitors'
 
-export function useExhibitors() {
+export function useExhibitors(exhibitionId?: number | null) {
   return useQuery({
-    queryKey: ['exhibitors', 'list'],
-    queryFn: getExhibitors,
+    queryKey: ['exhibitors', 'list', exhibitionId ?? 'all'],
+    queryFn: () => getExhibitors(exhibitionId ?? undefined),
   })
 }
 

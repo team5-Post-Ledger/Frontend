@@ -355,9 +355,9 @@ function BoothEditorPanel({
 export default function BoothsPage() {
   const exhibitionId = useCurrentExhibitionStore((state) => state.exhibitionId)
   const booths = useBooths(exhibitionId)
-  const categories = useBoothCategories()
-  const exhibitors = useExhibitors()
-  const embeddings = useBoothEmbeddings()
+  const categories = useBoothCategories(exhibitionId)
+  const exhibitors = useExhibitors(exhibitionId)
+  const embeddings = useBoothEmbeddings(exhibitionId)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<number | 'ALL'>('ALL')

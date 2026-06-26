@@ -58,7 +58,7 @@ export default function ExhibitionDashboardPage() {
   const exhibition = useExhibition(exhibitionId)
   const summary = useExhibitionOperationsSummary(exhibitionId)
   const trend = useExhibitionCheckinTrend(exhibitionId)
-  const congestion = useCongestionLive()
+  const congestion = useCongestionLive(exhibitionId)
 
   if (exhibitionId === null) {
     return <p className="text-sm text-danger">잘못된 행사 경로입니다.</p>

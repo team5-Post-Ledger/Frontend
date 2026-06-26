@@ -1,8 +1,9 @@
 import type { MovementMode } from '../../types'
 import { formatSlotRange } from '../../features/timeSlot/format'
-import { createPaidReservation } from './mockDb'
+import { createOnsitePaymentForReservation, createPaidReservation } from './mockDb'
 import { getExhibition } from './exhibitions'
 import { mockDelay } from './mockClient'
+import type { ReservationListItem } from './reservations'
 import { getTicketTypes } from './ticketTypes'
 import { getTimeSlots } from './timeSlots'
 
@@ -85,4 +86,37 @@ export async function submitPayment(input: PaymentSubmissionInput): Promise<Paym
     },
     1200,
   )
+}
+
+export async function recordReservationOnsitePayment(reservation: ReservationListItem): Promise<ReservationListItem> {
+  const paidAt = new Date().toISOString()
+
+  try {
+    const payment = createOnsitePaymentForReservation(reservation.id, reservation.amount)
+    return mockDelay({
+      ...reservation,
+      status: 'PAID',
+      payment: {
+        pgProvider: payment.pgProvider,
+        pgTxId: payment.pgTxId,
+        amount: payment.amount,
+        feeAmount: payment.feeAmount,
+        status: payment.status,
+        paidAt: payment.paidAt,
+      },
+    })
+  } catch {
+    return mockDelay({
+      ...reservation,
+      status: 'PAID',
+      payment: {
+        pgProvider: 'ONSITE',
+        pgTxId: `ONSITE-${reservation.id}-${Date.now()}`,
+        amount: reservation.amount,
+        feeAmount: 0,
+        status: 'PAID',
+        paidAt,
+      },
+    })
+  }
 }

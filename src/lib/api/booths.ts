@@ -253,8 +253,10 @@ let mockEmbeddings: BoothEmbedding[] = [
 let nextBoothId = 20
 let nextEmbeddingId = 6
 
-export async function getBoothCategories(): Promise<BoothCategory[]> {
-  return mockDelay(MOCK_CATEGORIES)
+export async function getBoothCategories(exhibitionId?: number): Promise<BoothCategory[]> {
+  return mockDelay(
+    exhibitionId === undefined ? MOCK_CATEGORIES : MOCK_CATEGORIES.filter((category) => category.exhibitionId === exhibitionId),
+  )
 }
 
 export async function getBooths(exhibitionId?: number): Promise<Booth[]> {
@@ -265,8 +267,11 @@ export async function getBoothsByExhibition(exhibitionId: number): Promise<Booth
   return mockDelay(mockBooths.filter((booth) => booth.exhibitionId === exhibitionId))
 }
 
-export async function getBoothEmbeddings(): Promise<BoothEmbedding[]> {
-  return mockDelay(mockEmbeddings)
+export async function getBoothEmbeddings(exhibitionId?: number): Promise<BoothEmbedding[]> {
+  if (exhibitionId === undefined) return mockDelay(mockEmbeddings)
+
+  const scopedBoothIds = new Set(mockBooths.filter((booth) => booth.exhibitionId === exhibitionId).map((booth) => booth.id))
+  return mockDelay(mockEmbeddings.filter((embedding) => scopedBoothIds.has(embedding.boothId)))
 }
 
 export type BoothInput = Omit<Booth, 'id' | 'exhibitionId'>

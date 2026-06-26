@@ -62,7 +62,7 @@ export default function ReservationExportPage() {
     ticketTypeName,
   }
 
-  const preview = useReservationAttendeeExportPreview(filters)
+  const preview = useReservationAttendeeExportPreview(exhibitionId, filters)
   const exportMutation = useExportReservationAttendees()
 
   const [toast, setToast] = useState<string | null>(null)

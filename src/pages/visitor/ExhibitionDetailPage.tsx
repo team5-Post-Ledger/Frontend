@@ -54,9 +54,9 @@ export default function ExhibitionDetailPage() {
 
   const exhibition = useExhibition(exhibitionId)
   const booths = useBoothsByExhibition(exhibitionId)
-  const categories = useBoothCategories()
+  const categories = useBoothCategories(exhibitionId)
   const sessions = useSessions(exhibitionId)
-  const congestion = useCongestionLive()
+  const congestion = useCongestionLive(exhibitionId)
 
   const [categoryFilter, setCategoryFilter] = useState<number | 'ALL'>('ALL')
 

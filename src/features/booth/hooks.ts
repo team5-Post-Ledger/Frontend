@@ -26,12 +26,18 @@ export function useBoothsByExhibition(exhibitionId: number | null) {
   })
 }
 
-export function useBoothCategories() {
-  return useQuery({ queryKey: ['booths', 'categories'], queryFn: getBoothCategories })
+export function useBoothCategories(exhibitionId?: number | null) {
+  return useQuery({
+    queryKey: ['booths', 'categories', exhibitionId ?? 'all'],
+    queryFn: () => getBoothCategories(exhibitionId ?? undefined),
+  })
 }
 
-export function useBoothEmbeddings() {
-  return useQuery({ queryKey: ['booths', 'embeddings'], queryFn: getBoothEmbeddings })
+export function useBoothEmbeddings(exhibitionId?: number | null) {
+  return useQuery({
+    queryKey: ['booths', 'embeddings', exhibitionId ?? 'all'],
+    queryFn: () => getBoothEmbeddings(exhibitionId ?? undefined),
+  })
 }
 
 export function useCreateBooth(exhibitionId?: number | null) {
