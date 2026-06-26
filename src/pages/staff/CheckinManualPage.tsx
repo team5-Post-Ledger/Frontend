@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { Field, fieldControlClass } from '../../components/Field'
 import { QRScanner } from '../../components/QRScanner'
 import { Stepper, type StepperStep } from '../../components/Stepper'
@@ -214,11 +215,20 @@ export default function CheckinManualPage() {
               ) : (
                 <div className="flex flex-col gap-2">
                   {candidates.map((candidate) => (
-                    <CandidateCard
-                      key={candidate.attendeeId}
-                      candidate={candidate}
-                      onSelect={() => handleSelectCandidate(candidate)}
-                    />
+                    <div key={candidate.attendeeId} className="flex flex-col gap-0.5">
+                      <CandidateCard
+                        candidate={candidate}
+                        onSelect={() => handleSelectCandidate(candidate)}
+                      />
+                      {candidate.groupSize > 1 && (
+                        <Link
+                          to={`/checkin/reservations/${candidate.reservationId}/status`}
+                          className="px-1 text-xs font-semibold text-primary transition-colors hover:text-primary-hover"
+                        >
+                          팀 현황 보기 →
+                        </Link>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
@@ -260,6 +270,15 @@ export default function CheckinManualPage() {
               <p className="mt-3 border border-line bg-surface p-3 text-xs leading-relaxed text-muted">
                 그룹 예약입니다. 대표 1명만 네임태그를 바인딩하며, 입장 시 head_count {selected.groupSize}명으로 기록됩니다.
               </p>
+            )}
+
+            {selected.groupSize > 1 && (
+              <Link
+                to={`/checkin/reservations/${selected.reservationId}/status`}
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary transition-colors hover:text-primary-hover"
+              >
+                팀 체크인 현황 보기 →
+              </Link>
             )}
 
             {selected.checkinStatus === 'CHECKED_IN' && (
@@ -326,13 +345,23 @@ export default function CheckinManualPage() {
                   ? 'GATE ENTRY가 기록되었습니다.'
                   : '이전 네임태그는 회수(REVOKED)되었습니다. GATE ENTRY는 새로 기록되지 않습니다.'}
               </p>
-              <button
-                type="button"
-                onClick={handleScanNext}
-                className="mt-4 flex h-11 items-center justify-center bg-primary px-6 text-sm font-bold text-white transition-colors hover:bg-primary-hover"
-              >
-                다음 참석자 조회
-              </button>
+              <div className="mt-4 flex flex-wrap items-center gap-4">
+                <button
+                  type="button"
+                  onClick={handleScanNext}
+                  className="flex h-11 items-center justify-center bg-primary px-6 text-sm font-bold text-white transition-colors hover:bg-primary-hover"
+                >
+                  다음 참석자 조회
+                </button>
+                {selected.groupSize > 1 && (
+                  <Link
+                    to={`/checkin/reservations/${selected.reservationId}/status`}
+                    className="text-xs font-semibold text-primary underline underline-offset-2"
+                  >
+                    팀 현황 보기 →
+                  </Link>
+                )}
+              </div>
             </div>
           )}
         </div>

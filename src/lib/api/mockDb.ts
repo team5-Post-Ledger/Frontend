@@ -560,6 +560,55 @@ export function cancelReservationAttendeeRecords(reservationId: number, attendee
   return reservation
 }
 
+export interface AttendeeCheckinStatusRow {
+  attendeeId: number
+  name: string
+  isGroupLeader: boolean
+  checkinStatus: CheckinStatus
+  attendeeStatus: AttendeeStatus
+  checkedInAt: string | null
+  nameTagIssued: boolean
+}
+
+export interface ReservationCheckinStatus {
+  reservationId: number
+  movementMode: MovementMode
+  groupSize: number
+  checkedInCount: number
+  activeCount: number
+  attendees: AttendeeCheckinStatusRow[]
+}
+
+// GET /api/checkin/reservations/{id}/status 대응 읽기 전용 게터 (§6.4).
+// 쓰기 없음 — 상태 변경은 checkInReservationAttendeeRecord가 담당한다.
+export function getReservationCheckinStatus(reservationId: number): ReservationCheckinStatus | null {
+  const reservation = reservations.find((r) => r.id === reservationId && r.deletedAt === null)
+  if (!reservation) return null
+
+  const rows = reservationAttendees
+    .filter((a) => a.reservationId === reservationId && a.deletedAt === null)
+    .map((a) => ({
+      attendeeId: a.id,
+      name: a.name,
+      isGroupLeader: a.isGroupLeader,
+      checkinStatus: a.checkinStatus,
+      attendeeStatus: a.attendeeStatus,
+      checkedInAt: a.checkedInAt,
+      nameTagIssued: a.nameTagIssued,
+    }))
+
+  const activeRows = rows.filter((r) => r.attendeeStatus === 'ACTIVE')
+
+  return {
+    reservationId,
+    movementMode: reservation.movementMode,
+    groupSize: reservation.groupSize,
+    checkedInCount: activeRows.filter((r) => r.checkinStatus === 'CHECKED_IN').length,
+    activeCount: activeRows.length,
+    attendees: rows,
+  }
+}
+
 export function checkInReservationAttendeeRecord(attendeeId: number, reservationId: number, checkedInAt = new Date().toISOString()): boolean {
   const attendee = reservationAttendees.find(
     (item) => item.id === attendeeId && item.reservationId === reservationId && item.deletedAt === null,

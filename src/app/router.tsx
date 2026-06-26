@@ -44,6 +44,7 @@ import ReserveFlowLayout from '../pages/visitor/reserve/ReserveFlowLayout'
 import ReserveSelectPage from '../pages/visitor/reserve/ReserveSelectPage'
 import StaffCheckinHomePage from '../pages/staff/CheckinHomePage'
 import StaffCheckinHubPage from '../pages/staff/CheckinHubPage'
+import StaffCheckinStatusPage from '../pages/staff/CheckinStatusPage'
 import StaffCheckinManualPage from '../pages/staff/CheckinManualPage'
 import StaffCheckinOnsitePaymentPage from '../pages/staff/CheckinOnsitePaymentPage'
 import StaffCheckinQrPage from '../pages/staff/CheckinQrPage'
@@ -158,7 +159,7 @@ export function AppRouter() {
           </Route>
           {/* 팀 체크인 현황 — 허브 밖 독립 라우트, 행사 선택 필요 */}
           <Route element={<RequireStaffExhibition />}>
-            <Route path="checkin/reservations/:id/status" element={<Stub label="팀 체크인 현황" />} />
+            <Route path="checkin/reservations/:id/status" element={<StaffCheckinStatusPage />} />
           </Route>
           {/* 교육 화면 — 다음 PR */}
           <Route path="education" element={<Stub label="교육 목록" />} />

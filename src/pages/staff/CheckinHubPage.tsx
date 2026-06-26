@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Link, NavLink, Navigate, Outlet, useNavigate } from 'react-router'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router'
 import { QueryState } from '../../components/QueryState'
 import { useMyProgress, useMyStaffExhibitions } from '../../features/staffExhibition/hooks'
 import type { StaffExhibitionSummary } from '../../lib/api/staffExhibitions'

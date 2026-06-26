@@ -6,7 +6,10 @@ import {
   createWalkInReservationRecord,
   getMockReservationAttendees,
   getMockReservations,
+  getReservationCheckinStatus as getMockCheckinStatus,
 } from './mockDb'
+
+export type { AttendeeCheckinStatusRow, ReservationCheckinStatus } from './mockDb'
 import { findActiveIssuedNameTagForAttendee, findNameTagByToken, markNameTagIssued, markNameTagRevoked } from './nameTags'
 
 export interface RecentCheckinView {
@@ -448,4 +451,9 @@ export async function bindNameTag(attendeeId: number, nameTagToken: string, opti
     gateEntryRecorded: !isReissue,
     log,
   })
+}
+
+// GET /api/checkin/reservations/{id}/status — 팀 예약 참석자별 체크인 현황(§6.4).
+export async function getReservationCheckinStatus(reservationId: number) {
+  return mockDelay(getMockCheckinStatus(reservationId))
 }

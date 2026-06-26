@@ -4,6 +4,7 @@ import {
   createWalkInReservation,
   getCheckinLogs,
   getRecentCheckins,
+  getReservationCheckinStatus,
   recordOnsitePayment,
   searchAttendees,
   verifyTicketQr,
@@ -62,5 +63,13 @@ export function useCreateWalkInReservation() {
 export function useRecordOnsitePayment() {
   return useMutation({
     mutationFn: ({ reservationId, amount }: { reservationId: number; amount: number }) => recordOnsitePayment(reservationId, amount),
+  })
+}
+
+export function useReservationCheckinStatus(reservationId: number | null) {
+  return useQuery({
+    queryKey: ['checkin', 'status', reservationId],
+    queryFn: () => getReservationCheckinStatus(reservationId as number),
+    enabled: reservationId !== null,
   })
 }
