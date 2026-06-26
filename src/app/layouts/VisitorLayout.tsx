@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useAuthStore } from '../../stores/authStore'
 
 const NAV_LINKS = [
@@ -7,6 +7,12 @@ const NAV_LINKS = [
   { to: '/assistant', label: 'AI 도우미' },
   { to: '/my', label: '내 예약' },
 ]
+
+// '/my'는 '/my/route'(별도 nav 항목)와 접두사가 겹친다. '/my/route'를 제외한
+// '/my' 하위 경로(예약·티켓 등)에서만 활성화되도록 직접 판정한다.
+function isMyHubActive(pathname: string) {
+  return pathname === '/my' || (pathname.startsWith('/my/') && !pathname.startsWith('/my/route'))
+}
 
 function HomeIcon() {
   return (
@@ -64,6 +70,7 @@ const TAB_ITEMS = [
 export function VisitorLayout() {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
+  const location = useLocation()
 
   return (
     <div className="flex min-h-screen flex-col bg-surface text-ink">
@@ -73,17 +80,32 @@ export function VisitorLayout() {
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex">
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              className={({ isActive }) =>
-                `text-sm font-semibold transition-colors ${isActive ? 'text-primary' : 'text-muted hover:text-ink'}`
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
+          {NAV_LINKS.map((link) => {
+            if (link.to === '/my') {
+              const isActive = isMyHubActive(location.pathname)
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`text-sm font-semibold transition-colors ${isActive ? 'text-primary' : 'text-muted hover:text-ink'}`}
+                >
+                  {link.label}
+                </Link>
+              )
+            }
+            return (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  `text-sm font-semibold transition-colors ${isActive ? 'text-primary' : 'text-muted hover:text-ink'}`
+                }
+              >
+                {link.label}
+              </NavLink>
+            )
+          })}
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
@@ -135,6 +157,25 @@ export function VisitorLayout() {
       <nav className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t border-line bg-white lg:hidden">
         {TAB_ITEMS.map((item) => {
           const Icon = item.icon
+
+          if (item.to === '/my') {
+            const isActive = isMyHubActive(location.pathname)
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                aria-current={isActive ? 'page' : undefined}
+                className={[
+                  'flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors',
+                  isActive ? 'text-primary' : 'text-muted',
+                ].join(' ')}
+              >
+                <Icon />
+                {item.label}
+              </Link>
+            )
+          }
+
           return (
             <NavLink
               key={item.to}

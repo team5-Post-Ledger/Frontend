@@ -8,6 +8,7 @@ import type { ExhibitionStatus } from '../../types'
 interface NavItem {
   to: string
   label: string
+  end?: boolean
 }
 
 interface NavGroup {
@@ -45,7 +46,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: '분석',
     items: [
-      { to: '/admin/stats', label: '통계' },
+      // '/admin/stats'는 '/admin/stats/flow'(별도 항목)와 접두사가 겹쳐 end로 정확 매칭한다.
+      { to: '/admin/stats', label: '통계', end: true },
       { to: '/admin/stats/flow', label: '동선 흐름' },
     ],
   },
@@ -132,7 +134,7 @@ export function AdminLayout() {
                   ))}
 
                 {group.items.map((item) => (
-                  <NavLink key={item.to} to={item.to} className={NAV_LINK_CLASS}>
+                  <NavLink key={item.to} to={item.to} end={item.end} className={NAV_LINK_CLASS}>
                     {({ isActive }) => <NavRowContent isActive={isActive} label={item.label} />}
                   </NavLink>
                 ))}
