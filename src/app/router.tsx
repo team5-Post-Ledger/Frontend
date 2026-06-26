@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router'
+import { useAuthStore } from '../stores/authStore'
 import BoothsPage from '../pages/admin/BoothsPage'
 import CheckinHubPage from '../pages/admin/CheckinHubPage'
 import CheckinManualPage from '../pages/admin/CheckinManualPage'
@@ -49,6 +50,10 @@ import StaffCheckinManualPage from '../pages/staff/CheckinManualPage'
 import StaffCheckinOnsitePaymentPage from '../pages/staff/CheckinOnsitePaymentPage'
 import StaffCheckinQrPage from '../pages/staff/CheckinQrPage'
 import StaffCheckinWalkInPage from '../pages/staff/CheckinWalkInPage'
+import EducationListPage from '../pages/staff/EducationListPage'
+import EducationDetailPage from '../pages/staff/EducationDetailPage'
+import QuizPage from '../pages/staff/QuizPage'
+import ProgressPage from '../pages/staff/ProgressPage'
 import { ProtectedRoute } from './guards/ProtectedRoute'
 import { RequireCurrentExhibition } from './guards/RequireCurrentExhibition'
 import { RequireStaffExhibition } from './guards/RequireStaffExhibition'
@@ -60,6 +65,15 @@ import { VisitorLayout } from './layouts/VisitorLayout'
 
 function Stub({ label }: { label: string }) {
   return <p className="text-sm text-muted">{label}</p>
+}
+
+// STAFF·EXHIBITOR 공유 교육 화면용 셸 — ProtectedRoute 통과 후 역할에 맞는 레이아웃을 고른다.
+function EducationShell() {
+  const role = useAuthStore((s) => s.user?.role)
+  if (role === 'STAFF') return <StaffLayout />
+  // TODO: ExhibitorLayout 도입 시 MobileLayout → ExhibitorLayout으로 교체
+  if (role === 'EXHIBITOR') return <MobileLayout />
+  return <Navigate to="/403" replace />
 }
 
 export function AppRouter() {
@@ -161,11 +175,6 @@ export function AppRouter() {
           <Route element={<RequireStaffExhibition />}>
             <Route path="checkin/reservations/:id/status" element={<StaffCheckinStatusPage />} />
           </Route>
-          {/* 교육 화면 — 다음 PR */}
-          <Route path="education" element={<Stub label="교육 목록" />} />
-          <Route path="education/progress" element={<Stub label="자격 현황" />} />
-          <Route path="education/:id" element={<Stub label="교육 상세" />} />
-          <Route path="education/:id/quiz" element={<Stub label="퀴즈 응시" />} />
         </Route>
       </Route>
 
@@ -174,7 +183,16 @@ export function AppRouter() {
         <Route element={<ProtectedRoute roles={['EXHIBITOR']} />}>
           <Route path="scanner/*" element={<Stub label="스캐너" />} />
           <Route path="exhibitor/*" element={<Stub label="참가기업 리포트" />} />
-          <Route path="education/*" element={<Stub label="교육 (참가기업)" />} />
+        </Route>
+      </Route>
+
+      {/* STAFF·EXHIBITOR 공유 교육 — EducationShell이 역할별 셸 선택 (§6.7, §3.8) */}
+      <Route element={<ProtectedRoute roles={['STAFF', 'EXHIBITOR']} />}>
+        <Route element={<EducationShell />}>
+          <Route path="education" element={<EducationListPage />} />
+          <Route path="education/progress" element={<ProgressPage />} />
+          <Route path="education/:id" element={<EducationDetailPage />} />
+          <Route path="education/:id/quiz" element={<QuizPage />} />
         </Route>
       </Route>
 

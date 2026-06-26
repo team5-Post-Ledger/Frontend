@@ -90,9 +90,14 @@ function QualificationBanner({
           이 행사는 LMS 수료 하드 게이트가 활성화되어 있습니다. 필수 교육을 완료해야 체크인·현장 결제·워크인 처리가 가능합니다.
           ({requiredPassed}/{requiredTotal}개 수료)
         </p>
-        <Link to="/education" className="mt-2 block text-xs font-bold text-primary underline underline-offset-2">
-          교육 바로가기 →
-        </Link>
+        <div className="mt-2 flex flex-wrap gap-4">
+          <Link to="/education" className="text-xs font-bold text-primary underline underline-offset-2">
+            교육 목록 →
+          </Link>
+          <Link to="/education/progress" className="text-xs font-bold text-primary underline underline-offset-2">
+            자격 현황에서 확인 →
+          </Link>
+        </div>
       </div>
     )
   }
@@ -106,9 +111,14 @@ function QualificationBanner({
       <p className="mt-1.5 text-xs leading-relaxed text-muted">
         체크인은 가능하지만 필수 교육 수료를 권장합니다. ({requiredPassed}/{requiredTotal}개 수료)
       </p>
-      <Link to="/education" className="mt-2 block text-xs font-bold text-primary underline underline-offset-2">
-        교육 바로가기 →
-      </Link>
+      <div className="mt-2 flex flex-wrap gap-4">
+        <Link to="/education" className="text-xs font-bold text-primary underline underline-offset-2">
+          교육 목록 →
+        </Link>
+        <Link to="/education/progress" className="text-xs font-bold text-primary underline underline-offset-2">
+          자격 현황에서 확인 →
+        </Link>
+      </div>
     </div>
   )
 }

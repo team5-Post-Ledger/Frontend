@@ -1,4 +1,5 @@
 import type { ExhibitionStatus } from '../../types'
+import { getCompletionRecord, getRequiredGuidesByRole } from './education'
 import { mockDelay } from './mockClient'
 
 // GET /api/staff/my-exhibitions — exhibition_staff 매핑된 행사 목록(§2.5).
@@ -42,6 +43,7 @@ export async function getMyStaffExhibitions(): Promise<StaffExhibitionSummary[]>
 
 // GET /api/education/my-progress?exhibitionId= — 내 LMS 이수 현황 + qualified 여부(§6.7).
 // qualified = 해당 행사의 필수 가이드(isRequired=true) 중 passed=true인 것이 전부 충족된 상태(§5.7).
+// MOCK_COMPLETIONS(education.ts)를 직접 읽어 재계산 — 별도 진실원 없음.
 export interface GuideProgressItem {
   guideId: number
   title: string
@@ -60,73 +62,28 @@ export interface MyProgressResult {
   guides: GuideProgressItem[]
 }
 
-// 시드 전략: 행사 1(하드 게이트)에서 qualified=true, 행사 2(소프트 게이트)에서 qualified=false.
-// → 하드 게이트 행사에서는 정상 진입, 소프트 게이트 행사에서는 경고 배너를 모두 테스트할 수 있다.
-const MOCK_PROGRESS: Record<number, MyProgressResult> = {
-  1: {
-    exhibitionId: 1,
-    qualified: true,
-    requiredTotal: 2,
-    requiredPassed: 2,
-    guides: [
-      {
-        guideId: 1,
-        title: '행사장 출입 및 안전 수칙',
-        category: '안전수칙',
-        isRequired: true,
-        passed: true,
-        videoCompleted: null,
-        quizScore: null,
-      },
-      {
-        guideId: 3,
-        title: '전기·네트워크 안전교육',
-        category: '전기네트워크',
-        isRequired: true,
-        passed: true,
-        videoCompleted: true,
-        quizScore: 100,
-      },
-    ],
-  },
-  2: {
-    exhibitionId: 2,
-    qualified: false,
-    requiredTotal: 2,
-    requiredPassed: 0,
-    guides: [
-      {
-        guideId: 1,
-        title: '행사장 출입 및 안전 수칙',
-        category: '안전수칙',
-        isRequired: true,
-        passed: false,
-        videoCompleted: null,
-        quizScore: null,
-      },
-      {
-        guideId: 3,
-        title: '전기·네트워크 안전교육',
-        category: '전기네트워크',
-        isRequired: true,
-        passed: false,
-        videoCompleted: false,
-        quizScore: null,
-      },
-    ],
-  },
-}
-
 export async function getMyProgress(exhibitionId: number): Promise<MyProgressResult> {
-  const result = MOCK_PROGRESS[exhibitionId]
-  if (!result) {
-    return mockDelay({
-      exhibitionId,
-      qualified: false,
-      requiredTotal: 0,
-      requiredPassed: 0,
-      guides: [],
-    })
-  }
-  return mockDelay(result)
+  // 플랫폼 공통(exhibitionId=null) STAFF 필수 가이드를 기준으로 qualified 판정.
+  // 행사별 전용 가이드 스코핑은 실 API 연결 시 서버가 처리한다.
+  const requiredGuides = getRequiredGuidesByRole('STAFF')
+  const guides: GuideProgressItem[] = requiredGuides.map((g) => {
+    const c = getCompletionRecord(g.id)
+    return {
+      guideId: g.id,
+      title: g.title,
+      category: g.category,
+      isRequired: g.isRequired,
+      passed: c?.passed ?? false,
+      videoCompleted: c?.videoCompleted ?? false,
+      quizScore: c?.quizScore ?? null,
+    }
+  })
+  const requiredPassed = guides.filter((g) => g.passed).length
+  return mockDelay({
+    exhibitionId,
+    qualified: requiredPassed === requiredGuides.length,
+    requiredTotal: requiredGuides.length,
+    requiredPassed,
+    guides,
+  })
 }
