@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { User } from '../types'
 import { clearSession, persistSession, restoreSession } from '../lib/auth'
 import { useCurrentExhibitionStore } from './currentExhibitionStore'
+import { useStaffExhibitionStore } from './staffExhibitionStore'
 
 interface AuthState {
   user: User | null
@@ -21,9 +22,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   logout: () => {
     clearSession()
-    // 같은 브라우저에서 다른 EXPO_ADMIN이 로그인했을 때 이전 사용자가 고른 행사가 남아있으면
-    // 담당 아닌 행사 데이터가 노출될 수 있어 선택도 함께 비운다.
+    // 다른 사용자가 로그인했을 때 이전 사용자가 고른 행사가 남지 않도록 역할별 행사 선택을 모두 초기화한다.
     useCurrentExhibitionStore.getState().setExhibitionId(null)
+    useStaffExhibitionStore.getState().setExhibitionId(null)
     set({ user: null, token: null })
   },
 }))

@@ -42,11 +42,19 @@ import ReserveAttendeesPage from '../pages/visitor/reserve/ReserveAttendeesPage'
 import ReserveConfirmPage from '../pages/visitor/reserve/ReserveConfirmPage'
 import ReserveFlowLayout from '../pages/visitor/reserve/ReserveFlowLayout'
 import ReserveSelectPage from '../pages/visitor/reserve/ReserveSelectPage'
+import StaffCheckinHomePage from '../pages/staff/CheckinHomePage'
+import StaffCheckinHubPage from '../pages/staff/CheckinHubPage'
+import StaffCheckinManualPage from '../pages/staff/CheckinManualPage'
+import StaffCheckinOnsitePaymentPage from '../pages/staff/CheckinOnsitePaymentPage'
+import StaffCheckinQrPage from '../pages/staff/CheckinQrPage'
+import StaffCheckinWalkInPage from '../pages/staff/CheckinWalkInPage'
 import { ProtectedRoute } from './guards/ProtectedRoute'
 import { RequireCurrentExhibition } from './guards/RequireCurrentExhibition'
+import { RequireStaffExhibition } from './guards/RequireStaffExhibition'
 import { AdminLayout } from './layouts/AdminLayout'
 import { AuthLayout } from './layouts/AuthLayout'
 import { MobileLayout } from './layouts/MobileLayout'
+import { StaffLayout } from './layouts/StaffLayout'
 import { VisitorLayout } from './layouts/VisitorLayout'
 
 function Stub({ label }: { label: string }) {
@@ -133,16 +141,39 @@ export function AppRouter() {
         </Route>
       </Route>
 
-      <Route element={<MobileLayout />}>
+      {/* STAFF 전용 모바일 셸 — 하단 3탭(체크인·교육·자격) */}
+      <Route element={<StaffLayout />}>
         <Route element={<ProtectedRoute roles={['STAFF']} />}>
-          <Route path="checkin/*" element={<Stub label="체크인" />} />
+          {/* /checkin index → CheckinHomePage(피커 겸 홈, 로고 목적지).
+              /checkin/* → StaffCheckinHubPage(4탭 셸)가 pathless 레이아웃으로 감싼다.
+              탭(체크인 NAV 항목)은 /checkin/qr 직행; 로고=홈, 탭=허브로 목적지 분리. */}
+          <Route path="checkin">
+            <Route index element={<StaffCheckinHomePage />} />
+            <Route element={<StaffCheckinHubPage />}>
+              <Route path="qr" element={<StaffCheckinQrPage />} />
+              <Route path="manual" element={<StaffCheckinManualPage />} />
+              <Route path="onsite-payment" element={<StaffCheckinOnsitePaymentPage />} />
+              <Route path="walk-in" element={<StaffCheckinWalkInPage />} />
+            </Route>
+          </Route>
+          {/* 팀 체크인 현황 — 허브 밖 독립 라우트, 행사 선택 필요 */}
+          <Route element={<RequireStaffExhibition />}>
+            <Route path="checkin/reservations/:id/status" element={<Stub label="팀 체크인 현황" />} />
+          </Route>
+          {/* 교육 화면 — 다음 PR */}
+          <Route path="education" element={<Stub label="교육 목록" />} />
+          <Route path="education/progress" element={<Stub label="자격 현황" />} />
+          <Route path="education/:id" element={<Stub label="교육 상세" />} />
+          <Route path="education/:id/quiz" element={<Stub label="퀴즈 응시" />} />
         </Route>
+      </Route>
+
+      {/* EXHIBITOR 전용 모바일 셸 */}
+      <Route element={<MobileLayout />}>
         <Route element={<ProtectedRoute roles={['EXHIBITOR']} />}>
           <Route path="scanner/*" element={<Stub label="스캐너" />} />
           <Route path="exhibitor/*" element={<Stub label="참가기업 리포트" />} />
-        </Route>
-        <Route element={<ProtectedRoute roles={['STAFF', 'EXHIBITOR']} />}>
-          <Route path="education/*" element={<Stub label="교육" />} />
+          <Route path="education/*" element={<Stub label="교육 (참가기업)" />} />
         </Route>
       </Route>
 
