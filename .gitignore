@@ -24,7 +24,7 @@ dist-ssr
 *.sw?
 
 # vibe coding local notes
-master-plan.md
+docs/
 CLAUDE.md
 .claude/
 AGENTS.md

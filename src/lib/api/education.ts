@@ -7,7 +7,9 @@ function stripAnswer(guide: EducationGuide): EducationGuidePublic {
   return {
     ...guide,
     quizQuestions: guide.quizQuestions
-      ? guide.quizQuestions.map(({ answer: _answer, ...rest }) => rest)
+      ? guide.quizQuestions.map(
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          ({ answer: _answer, ...rest }) => rest)
       : null,
   }
 }

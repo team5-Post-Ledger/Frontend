@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { QueryState } from '../../components/QueryState'
 import { useEducationGuidePublic, useSubmitQuiz } from '../../features/education/hooks'
 import { useAuthStore } from '../../stores/authStore'

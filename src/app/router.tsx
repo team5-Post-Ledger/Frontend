@@ -25,6 +25,7 @@ import TimeSlotsPage from '../pages/admin/TimeSlotsPage'
 import LoginPage from '../pages/auth/LoginPage'
 import SignupPage from '../pages/auth/SignupPage'
 import PrimitivesPreviewPage from '../pages/dev/PrimitivesPreviewPage'
+import PlatformStubPage from '../pages/platform/PlatformStubPage'
 import AssistantPage from '../pages/visitor/AssistantPage'
 import BoothDetailPage from '../pages/visitor/BoothDetailPage'
 import BoothListPage from '../pages/visitor/BoothListPage'
@@ -60,6 +61,7 @@ import { RequireStaffExhibition } from './guards/RequireStaffExhibition'
 import { AdminLayout } from './layouts/AdminLayout'
 import { AuthLayout } from './layouts/AuthLayout'
 import { MobileLayout } from './layouts/MobileLayout'
+import { PlatformLayout } from './layouts/PlatformLayout'
 import { StaffLayout } from './layouts/StaffLayout'
 import { VisitorLayout } from './layouts/VisitorLayout'
 
@@ -148,11 +150,21 @@ export function AppRouter() {
 
           <Route path="admin/*" element={<Stub label="이 화면은 아직 준비 중입니다" />} />
         </Route>
-        <Route element={<ProtectedRoute roles={['PLATFORM_ADMIN']} />}>
-          <Route path="platform/*" element={<Stub label="플랫폼 관리" />} />
-        </Route>
         <Route element={<ProtectedRoute roles={['ACCOUNTANT']} />}>
           <Route path="settlements/*" element={<Stub label="정산" />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute roles={['PLATFORM_ADMIN']} />}>
+        <Route element={<PlatformLayout />}>
+          <Route path="platform" element={<Navigate to="/platform/exhibitions" replace />} />
+          <Route path="platform/exhibitions" element={<PlatformStubPage kind="exhibitions" />} />
+          <Route path="platform/exhibitions/:id" element={<PlatformStubPage kind="exhibitionDetail" />} />
+          <Route path="platform/admins" element={<PlatformStubPage kind="admins" />} />
+          <Route path="platform/accountants" element={<PlatformStubPage kind="accountants" />} />
+          <Route path="platform/ads" element={<PlatformStubPage kind="ads" />} />
+          <Route path="platform/stats" element={<PlatformStubPage kind="stats" />} />
+          <Route path="platform/*" element={<Navigate to="/platform/exhibitions" replace />} />
         </Route>
       </Route>
 

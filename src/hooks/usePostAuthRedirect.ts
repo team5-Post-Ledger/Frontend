@@ -5,7 +5,7 @@ import type { Role } from '../types'
 const ROLE_HOME: Record<Role, string> = {
   VISITOR: '/',
   EXPO_ADMIN: '/admin',
-  PLATFORM_ADMIN: '/platform',
+  PLATFORM_ADMIN: '/platform/exhibitions',
   ACCOUNTANT: '/settlements',
   STAFF: '/checkin',
   EXHIBITOR: '/scanner',
