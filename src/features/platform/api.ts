@@ -119,6 +119,26 @@ const PLATFORM_ACCOUNTANTS: PlatformUserSummary[] = [
     assignedExhibitionIds: [1],
     active: true,
   },
+  {
+    id: 9,
+    email: 'settlement@fairpilot.io',
+    name: '박정산',
+    phone: '010-9999-9999',
+    role: 'ACCOUNTANT',
+    deletedAt: null,
+    assignedExhibitionIds: [],
+    active: true,
+  },
+  {
+    id: 10,
+    email: 'accounting.closed@fairpilot.io',
+    name: '최마감',
+    phone: '010-1010-1010',
+    role: 'ACCOUNTANT',
+    deletedAt: null,
+    assignedExhibitionIds: [],
+    active: false,
+  },
 ]
 
 const PLATFORM_ADS: PlatformAdSummary[] = [
@@ -182,7 +202,10 @@ export async function listPlatformAdmins(): Promise<PlatformUserSummary[]> {
 }
 
 export async function listPlatformAccountants(): Promise<PlatformUserSummary[]> {
-  return mockDelay(PLATFORM_ACCOUNTANTS)
+  return mockDelay(
+    PLATFORM_ACCOUNTANTS.filter((accountant) => accountant.role === 'ACCOUNTANT'),
+    500,
+  )
 }
 
 export async function listPlatformAds(): Promise<PlatformAdSummary[]> {

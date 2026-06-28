@@ -52,7 +52,7 @@ export function usePlatformAdmins() {
 export function usePlatformAccountants() {
   return useQuery({
     queryKey: platformQueryKeys.accountants,
-    queryFn: listPlatformAccountants,
+    queryFn: () => listPlatformAccountants(),
   })
 }
 
