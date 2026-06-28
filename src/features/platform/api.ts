@@ -142,7 +142,14 @@ export async function listPlatformExhibitions(options: { fail?: boolean } = {}):
 }
 
 export async function getPlatformExhibition(id: number): Promise<PlatformExhibitionSummary | null> {
-  return mockDelay(PLATFORM_EXHIBITIONS.find((exhibition) => exhibition.id === id) ?? null)
+  return mockDelay(PLATFORM_EXHIBITIONS.find((exhibition) => exhibition.id === id) ?? null, 450)
+}
+
+export async function listPlatformExhibitionAdmins(exhibitionId: number): Promise<PlatformUserSummary[]> {
+  return mockDelay(
+    PLATFORM_ADMINS.filter((admin) => admin.assignedExhibitionIds.includes(exhibitionId)),
+    450,
+  )
 }
 
 export async function listPlatformAdmins(): Promise<PlatformUserSummary[]> {
