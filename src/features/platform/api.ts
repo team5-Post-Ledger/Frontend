@@ -86,6 +86,26 @@ const PLATFORM_ADMINS: PlatformUserSummary[] = [
     assignedExhibitionIds: [1, 13],
     active: true,
   },
+  {
+    id: 7,
+    email: 'expo.sea@fairpilot.io',
+    name: '정바다',
+    phone: '010-7777-7777',
+    role: 'EXPO_ADMIN',
+    deletedAt: null,
+    assignedExhibitionIds: [12],
+    active: true,
+  },
+  {
+    id: 8,
+    email: 'expo.pending@fairpilot.io',
+    name: '오미배정',
+    phone: null,
+    role: 'EXPO_ADMIN',
+    deletedAt: null,
+    assignedExhibitionIds: [],
+    active: false,
+  },
 ]
 
 const PLATFORM_ACCOUNTANTS: PlatformUserSummary[] = [
@@ -147,13 +167,18 @@ export async function getPlatformExhibition(id: number): Promise<PlatformExhibit
 
 export async function listPlatformExhibitionAdmins(exhibitionId: number): Promise<PlatformUserSummary[]> {
   return mockDelay(
-    PLATFORM_ADMINS.filter((admin) => admin.assignedExhibitionIds.includes(exhibitionId)),
+    PLATFORM_ADMINS.filter(
+      (admin) => admin.role === 'EXPO_ADMIN' && admin.assignedExhibitionIds.includes(exhibitionId),
+    ),
     450,
   )
 }
 
 export async function listPlatformAdmins(): Promise<PlatformUserSummary[]> {
-  return mockDelay(PLATFORM_ADMINS)
+  return mockDelay(
+    PLATFORM_ADMINS.filter((admin) => admin.role === 'EXPO_ADMIN'),
+    500,
+  )
 }
 
 export async function listPlatformAccountants(): Promise<PlatformUserSummary[]> {

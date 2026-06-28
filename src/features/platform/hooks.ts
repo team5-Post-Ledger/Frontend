@@ -45,7 +45,7 @@ export function usePlatformExhibitionAdmins(id: number | null) {
 export function usePlatformAdmins() {
   return useQuery({
     queryKey: platformQueryKeys.admins,
-    queryFn: listPlatformAdmins,
+    queryFn: () => listPlatformAdmins(),
   })
 }
 
