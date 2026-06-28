@@ -1,4 +1,4 @@
-import type { Advertisement, Exhibition, User } from '../../types'
+import type { Advertisement, AdSlot, Exhibition, User } from '../../types'
 import { mockDelay } from '../../lib/api/mockClient'
 
 export interface PlatformExhibitionSummary extends Exhibition {
@@ -141,6 +141,36 @@ const PLATFORM_ACCOUNTANTS: PlatformUserSummary[] = [
   },
 ]
 
+const PLATFORM_AD_SLOTS: AdSlot[] = [
+  {
+    id: 1,
+    exhibitionId: null,
+    placement: 'HOME_TOP',
+    basePrice: 1200000,
+    status: 'ACTIVE',
+    createdAt: '2026-08-01T09:00:00',
+    updatedAt: '2026-08-10T09:00:00',
+  },
+  {
+    id: 2,
+    exhibitionId: 1,
+    placement: 'EXPO_BANNER',
+    basePrice: 900000,
+    status: 'ACTIVE',
+    createdAt: '2026-08-03T09:00:00',
+    updatedAt: '2026-08-12T09:00:00',
+  },
+  {
+    id: 3,
+    exhibitionId: 13,
+    placement: 'BOOTH_RECOMMEND',
+    basePrice: 600000,
+    status: 'INACTIVE',
+    createdAt: '2026-08-05T09:00:00',
+    updatedAt: '2026-08-15T09:00:00',
+  },
+]
+
 const PLATFORM_ADS: PlatformAdSummary[] = [
   {
     id: 1,
@@ -160,6 +190,63 @@ const PLATFORM_ADS: PlatformAdSummary[] = [
     updatedAt: '2026-08-10T09:00:00',
     placement: 'HOME_TOP',
     exhibitionTitle: null,
+  },
+  {
+    id: 2,
+    adSlotId: 2,
+    advertiserName: 'AI 제조 클러스터',
+    exhibitorId: null,
+    title: '스마트 제조 상담관',
+    imageUrl: '/ads/ai-factory.png',
+    linkUrl: '/exhibitions/1/booths',
+    startAt: '2026-08-25T00:00:00',
+    endAt: '2026-09-03T23:59:59',
+    price: 900000,
+    status: 'DRAFT',
+    impressions: 0,
+    clicks: 0,
+    createdAt: '2026-08-12T10:00:00',
+    updatedAt: '2026-08-12T10:00:00',
+    placement: 'EXPO_BANNER',
+    exhibitionTitle: '2026 서울 스마트팩토리 박람회',
+  },
+  {
+    id: 3,
+    adSlotId: 2,
+    advertiserName: '산업 IoT 포럼',
+    exhibitorId: null,
+    title: '현장 데이터 분석 세미나',
+    imageUrl: '/ads/iot-forum.png',
+    linkUrl: '/exhibitions/1',
+    startAt: '2026-09-01T00:00:00',
+    endAt: '2026-09-03T23:59:59',
+    price: 760000,
+    status: 'PAUSED',
+    impressions: 2140,
+    clicks: 64,
+    createdAt: '2026-08-13T10:00:00',
+    updatedAt: '2026-08-20T10:00:00',
+    placement: 'EXPO_BANNER',
+    exhibitionTitle: '2026 서울 스마트팩토리 박람회',
+  },
+  {
+    id: 4,
+    adSlotId: 3,
+    advertiserName: '스마트시티 협의회',
+    exhibitorId: null,
+    title: '도시 데이터 특별전',
+    imageUrl: '/ads/smart-city.png',
+    linkUrl: '/exhibitions/13',
+    startAt: '2026-06-01T00:00:00',
+    endAt: '2026-06-15T23:59:59',
+    price: 580000,
+    status: 'EXPIRED',
+    impressions: 5320,
+    clicks: 181,
+    createdAt: '2026-05-20T10:00:00',
+    updatedAt: '2026-06-16T10:00:00',
+    placement: 'BOOTH_RECOMMEND',
+    exhibitionTitle: '2027 스마트시티 박람회',
   },
 ]
 
@@ -208,8 +295,12 @@ export async function listPlatformAccountants(): Promise<PlatformUserSummary[]> 
   )
 }
 
+export async function listPlatformAdSlots(): Promise<AdSlot[]> {
+  return mockDelay(PLATFORM_AD_SLOTS, 500)
+}
+
 export async function listPlatformAds(): Promise<PlatformAdSummary[]> {
-  return mockDelay(PLATFORM_ADS)
+  return mockDelay(PLATFORM_ADS, 500)
 }
 
 export async function getPlatformStatsOverview(): Promise<PlatformStatsOverview> {

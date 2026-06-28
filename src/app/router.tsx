@@ -27,6 +27,7 @@ import SignupPage from '../pages/auth/SignupPage'
 import PrimitivesPreviewPage from '../pages/dev/PrimitivesPreviewPage'
 import PlatformAccountantsPage from '../pages/platform/PlatformAccountantsPage'
 import PlatformAdminsPage from '../pages/platform/PlatformAdminsPage'
+import PlatformAdsPage from '../pages/platform/PlatformAdsPage'
 import PlatformExhibitionDetailPage from '../pages/platform/PlatformExhibitionDetailPage'
 import PlatformExhibitionsPage from '../pages/platform/PlatformExhibitionsPage'
 import PlatformStubPage from '../pages/platform/PlatformStubPage'
@@ -166,7 +167,7 @@ export function AppRouter() {
           <Route path="platform/exhibitions/:id" element={<PlatformExhibitionDetailPage />} />
           <Route path="platform/admins" element={<PlatformAdminsPage />} />
           <Route path="platform/accountants" element={<PlatformAccountantsPage />} />
-          <Route path="platform/ads" element={<PlatformStubPage kind="ads" />} />
+          <Route path="platform/ads" element={<PlatformAdsPage />} />
           <Route path="platform/stats" element={<PlatformStubPage kind="stats" />} />
           <Route path="platform/*" element={<Navigate to="/platform/exhibitions" replace />} />
         </Route>

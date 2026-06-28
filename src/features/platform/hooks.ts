@@ -4,6 +4,7 @@ import {
   getPlatformStatsOverview,
   listPlatformAccountants,
   listPlatformAdmins,
+  listPlatformAdSlots,
   listPlatformAds,
   listPlatformExhibitionAdmins,
   listPlatformExhibitions,
@@ -15,6 +16,7 @@ export const platformQueryKeys = {
   exhibitionAdmins: (id: number | null) => ['platform', 'exhibitions', id, 'admins'] as const,
   admins: ['platform', 'admins'] as const,
   accountants: ['platform', 'accountants'] as const,
+  adSlots: ['platform', 'ad-slots'] as const,
   ads: ['platform', 'ads'] as const,
   stats: ['platform', 'stats'] as const,
 }
@@ -59,7 +61,14 @@ export function usePlatformAccountants() {
 export function usePlatformAds() {
   return useQuery({
     queryKey: platformQueryKeys.ads,
-    queryFn: listPlatformAds,
+    queryFn: () => listPlatformAds(),
+  })
+}
+
+export function usePlatformAdSlots() {
+  return useQuery({
+    queryKey: platformQueryKeys.adSlots,
+    queryFn: () => listPlatformAdSlots(),
   })
 }
 
