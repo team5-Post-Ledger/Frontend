@@ -25,6 +25,7 @@ import TimeSlotsPage from '../pages/admin/TimeSlotsPage'
 import LoginPage from '../pages/auth/LoginPage'
 import SignupPage from '../pages/auth/SignupPage'
 import PrimitivesPreviewPage from '../pages/dev/PrimitivesPreviewPage'
+import PlatformExhibitionsPage from '../pages/platform/PlatformExhibitionsPage'
 import PlatformStubPage from '../pages/platform/PlatformStubPage'
 import AssistantPage from '../pages/visitor/AssistantPage'
 import BoothDetailPage from '../pages/visitor/BoothDetailPage'
@@ -158,7 +159,7 @@ export function AppRouter() {
       <Route element={<ProtectedRoute roles={['PLATFORM_ADMIN']} />}>
         <Route element={<PlatformLayout />}>
           <Route path="platform" element={<Navigate to="/platform/exhibitions" replace />} />
-          <Route path="platform/exhibitions" element={<PlatformStubPage kind="exhibitions" />} />
+          <Route path="platform/exhibitions" element={<PlatformExhibitionsPage />} />
           <Route path="platform/exhibitions/:id" element={<PlatformStubPage kind="exhibitionDetail" />} />
           <Route path="platform/admins" element={<PlatformStubPage kind="admins" />} />
           <Route path="platform/accountants" element={<PlatformStubPage kind="accountants" />} />

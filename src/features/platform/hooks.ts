@@ -20,7 +20,7 @@ export const platformQueryKeys = {
 export function usePlatformExhibitions() {
   return useQuery({
     queryKey: platformQueryKeys.exhibitions,
-    queryFn: listPlatformExhibitions,
+    queryFn: () => listPlatformExhibitions(),
   })
 }
 

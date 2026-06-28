@@ -57,6 +57,22 @@ const PLATFORM_EXHIBITIONS: PlatformExhibitionSummary[] = [
     adminCount: 1,
     accountantCount: 0,
   },
+  {
+    id: 12,
+    title: '2026 부산 국제수산엑스포',
+    slug: 'busan-seafood-2026',
+    venue: 'BEXCO 제2전시장',
+    address: '부산 해운대구 APEC로 55',
+    floorMapMeta: null,
+    startDate: '2026-03-10',
+    endDate: '2026-03-12',
+    status: 'CLOSED',
+    enforceStaffQualification: false,
+    createdBy: 1,
+    deletedAt: null,
+    adminCount: 1,
+    accountantCount: 1,
+  },
 ]
 
 const PLATFORM_ADMINS: PlatformUserSummary[] = [
@@ -115,8 +131,14 @@ const PLATFORM_STATS: PlatformStatsOverview = {
   adRevenue: 1200000,
 }
 
-export async function listPlatformExhibitions(): Promise<PlatformExhibitionSummary[]> {
-  return mockDelay(PLATFORM_EXHIBITIONS)
+export async function listPlatformExhibitions(options: { fail?: boolean } = {}): Promise<PlatformExhibitionSummary[]> {
+  if (options.fail) {
+    return new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Failed to load platform exhibitions')), 400)
+    })
+  }
+
+  return mockDelay(PLATFORM_EXHIBITIONS, 500)
 }
 
 export async function getPlatformExhibition(id: number): Promise<PlatformExhibitionSummary | null> {
