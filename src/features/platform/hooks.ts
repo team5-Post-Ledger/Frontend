@@ -75,6 +75,6 @@ export function usePlatformAdSlots() {
 export function usePlatformStatsOverview() {
   return useQuery({
     queryKey: platformQueryKeys.stats,
-    queryFn: getPlatformStatsOverview,
+    queryFn: () => getPlatformStatsOverview(),
   })
 }

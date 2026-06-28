@@ -30,7 +30,7 @@ import PlatformAdminsPage from '../pages/platform/PlatformAdminsPage'
 import PlatformAdsPage from '../pages/platform/PlatformAdsPage'
 import PlatformExhibitionDetailPage from '../pages/platform/PlatformExhibitionDetailPage'
 import PlatformExhibitionsPage from '../pages/platform/PlatformExhibitionsPage'
-import PlatformStubPage from '../pages/platform/PlatformStubPage'
+import PlatformStatsPage from '../pages/platform/PlatformStatsPage'
 import AssistantPage from '../pages/visitor/AssistantPage'
 import BoothDetailPage from '../pages/visitor/BoothDetailPage'
 import BoothListPage from '../pages/visitor/BoothListPage'
@@ -168,7 +168,7 @@ export function AppRouter() {
           <Route path="platform/admins" element={<PlatformAdminsPage />} />
           <Route path="platform/accountants" element={<PlatformAccountantsPage />} />
           <Route path="platform/ads" element={<PlatformAdsPage />} />
-          <Route path="platform/stats" element={<PlatformStubPage kind="stats" />} />
+          <Route path="platform/stats" element={<PlatformStatsPage />} />
           <Route path="platform/*" element={<Navigate to="/platform/exhibitions" replace />} />
         </Route>
       </Route>

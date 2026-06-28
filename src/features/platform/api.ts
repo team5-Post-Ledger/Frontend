@@ -20,7 +20,28 @@ export interface PlatformStatsOverview {
   exhibitionCount: number
   openExhibitionCount: number
   grossAmount: number
+  onlineAmount: number
+  onsiteAmount: number
+  feeAmount: number
+  netPayout: number
   visitorCount: number
+  reservationCount: number
+  adRevenue: number
+  activeAdCount: number
+  adImpressions: number
+  adClicks: number
+  exhibitionSummaries: PlatformExhibitionStatsSummary[]
+}
+
+export interface PlatformExhibitionStatsSummary {
+  exhibitionId: number
+  title: string
+  status: Exhibition['status']
+  startDate: string
+  endDate: string
+  grossAmount: number
+  visitorCount: number
+  reservationCount: number
   adRevenue: number
 }
 
@@ -251,11 +272,54 @@ const PLATFORM_ADS: PlatformAdSummary[] = [
 ]
 
 const PLATFORM_STATS: PlatformStatsOverview = {
-  exhibitionCount: 2,
+  exhibitionCount: PLATFORM_EXHIBITIONS.length,
   openExhibitionCount: 1,
   grossAmount: 28400000,
+  onlineAmount: 22300000,
+  onsiteAmount: 6100000,
+  feeAmount: 1780000,
+  netPayout: 28400000,
   visitorCount: 12640,
-  adRevenue: 1200000,
+  reservationCount: 1800,
+  adRevenue: 1780000,
+  activeAdCount: PLATFORM_ADS.filter((ad) => ad.status === 'ACTIVE').length,
+  adImpressions: PLATFORM_ADS.reduce((sum, ad) => sum + ad.impressions, 0),
+  adClicks: PLATFORM_ADS.reduce((sum, ad) => sum + ad.clicks, 0),
+  exhibitionSummaries: [
+    {
+      exhibitionId: 1,
+      title: '2026 서울 스마트팩토리 박람회',
+      status: 'OPEN',
+      startDate: '2026-09-01',
+      endDate: '2026-09-03',
+      grossAmount: 18400000,
+      visitorCount: 7480,
+      reservationCount: 830,
+      adRevenue: 1200000,
+    },
+    {
+      exhibitionId: 12,
+      title: '2026 부산 국제수산엑스포',
+      status: 'CLOSED',
+      startDate: '2026-03-10',
+      endDate: '2026-03-12',
+      grossAmount: 6300000,
+      visitorCount: 3920,
+      reservationCount: 710,
+      adRevenue: 0,
+    },
+    {
+      exhibitionId: 13,
+      title: '2027 스마트시티 박람회',
+      status: 'DRAFT',
+      startDate: '2027-03-03',
+      endDate: '2027-03-05',
+      grossAmount: 3700000,
+      visitorCount: 1240,
+      reservationCount: 260,
+      adRevenue: 580000,
+    },
+  ],
 }
 
 export async function listPlatformExhibitions(options: { fail?: boolean } = {}): Promise<PlatformExhibitionSummary[]> {
@@ -304,5 +368,5 @@ export async function listPlatformAds(): Promise<PlatformAdSummary[]> {
 }
 
 export async function getPlatformStatsOverview(): Promise<PlatformStatsOverview> {
-  return mockDelay(PLATFORM_STATS)
+  return mockDelay(PLATFORM_STATS, 500)
 }
