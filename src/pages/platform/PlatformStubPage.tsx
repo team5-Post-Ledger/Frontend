@@ -138,10 +138,6 @@ function ExhibitionDetailStub() {
               <dt className="text-muted">EXPO_ADMIN</dt>
               <dd className="mt-1 font-bold text-ink">{data.adminCount}명</dd>
             </div>
-            <div>
-              <dt className="text-muted">ACCOUNTANT</dt>
-              <dd className="mt-1 font-bold text-ink">{data.accountantCount}명</dd>
-            </div>
           </dl>
         )}
       </QueryState>

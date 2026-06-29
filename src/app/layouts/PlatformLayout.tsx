@@ -17,7 +17,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const NAV_LINK_CLASS = ({ isActive }: { isActive: boolean }) =>
   [
-    'group flex items-center gap-3 px-3 py-2.5 text-sm font-semibold transition-colors',
+    'group flex items-center gap-3 px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
     isActive ? 'bg-surface shadow-sm' : 'text-white/65 hover:bg-white/10 hover:text-white',
   ].join(' ')
 
@@ -42,7 +42,10 @@ export function PlatformLayout() {
   return (
     <div className="flex min-h-screen bg-surface text-ink">
       <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col overflow-hidden bg-shell text-white">
-        <Link to="/platform/exhibitions" className="border-b border-white/10 px-5 py-5 transition-colors hover:bg-white/5">
+        <Link
+          to="/platform/exhibitions"
+          className="border-b border-white/10 px-5 py-5 transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
           <div className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center bg-white/10">
               <span className="h-3.5 w-3.5 rotate-45 bg-primary" />
@@ -92,7 +95,7 @@ export function PlatformLayout() {
             <button
               type="button"
               onClick={logout}
-              className="ml-1 px-2 py-1 text-sm font-semibold text-muted transition-colors hover:bg-surface hover:text-primary"
+              className="ml-1 px-2 py-1 text-sm font-semibold text-muted transition-colors hover:bg-surface hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               로그아웃
             </button>

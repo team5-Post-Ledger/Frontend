@@ -1,8 +1,8 @@
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
-import type { PlatformUserSummary } from '../../features/platform/api'
+import type { PlatformAdminSummary } from '../../features/platform/api'
 import { usePlatformAdmins, usePlatformExhibitions } from '../../features/platform/hooks'
 
-function formatAssignedExhibitions(admin: PlatformUserSummary, exhibitionTitles: Map<number, string>) {
+function formatAssignedExhibitions(admin: PlatformAdminSummary, exhibitionTitles: Map<number, string>) {
   if (admin.assignedExhibitionIds.length === 0) {
     return '미배정'
   }
@@ -24,7 +24,7 @@ export default function PlatformAdminsPage() {
   const assignedCount = admins.filter((admin) => admin.assignedExhibitionIds.length > 0).length
   const unassignedCount = admins.length - assignedCount
 
-  const columns: DataTableColumn<PlatformUserSummary>[] = [
+  const columns: DataTableColumn<PlatformAdminSummary>[] = [
     {
       key: 'name',
       header: '이름',
@@ -56,10 +56,10 @@ export default function PlatformAdminsPage() {
         <span
           className={[
             'inline-flex rounded-full px-2 py-1 text-xs font-semibold',
-            admin.active ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted',
+            admin.isActive ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted',
           ].join(' ')}
         >
-          {admin.active ? '활성' : '비활성'}
+          {admin.isActive ? '활성' : '비활성'}
         </span>
       ),
     },

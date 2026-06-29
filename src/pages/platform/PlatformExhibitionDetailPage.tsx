@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
 import { QueryState } from '../../components/QueryState'
-import type { PlatformUserSummary } from '../../features/platform/api'
+import type { PlatformAdminSummary } from '../../features/platform/api'
 import { usePlatformExhibition, usePlatformExhibitionAdmins } from '../../features/platform/hooks'
 import { formatDateRange } from '../../lib/format'
 import type { ExhibitionStatus } from '../../types'
@@ -12,7 +12,7 @@ const STATUS_BADGE: Record<ExhibitionStatus, { label: string; className: string 
   CLOSED: { label: 'CLOSED', className: 'bg-line text-muted' },
 }
 
-const adminColumns: DataTableColumn<PlatformUserSummary>[] = [
+const adminColumns: DataTableColumn<PlatformAdminSummary>[] = [
   {
     key: 'name',
     header: '이름',
@@ -39,7 +39,7 @@ const adminColumns: DataTableColumn<PlatformUserSummary>[] = [
     key: 'active',
     header: '상태',
     align: 'center',
-    render: (row) => <span className="text-sm font-semibold text-ink">{row.active ? '활성' : '비활성'}</span>,
+    render: (row) => <span className="text-sm font-semibold text-ink">{row.isActive ? '활성' : '비활성'}</span>,
   },
 ]
 

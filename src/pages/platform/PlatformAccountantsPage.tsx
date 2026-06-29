@@ -1,17 +1,68 @@
+import { useState } from 'react'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
-import type { PlatformUserSummary } from '../../features/platform/api'
-import { usePlatformAccountants } from '../../features/platform/hooks'
+import type { PlatformAccountantSummary } from '../../features/platform/api'
+import {
+  useActivatePlatformAccountant,
+  useDeactivatePlatformAccountant,
+  usePlatformAccountants,
+} from '../../features/platform/hooks'
+
+type PendingAction =
+  | { type: 'deactivate'; accountant: PlatformAccountantSummary }
+  | { type: 'activate'; accountant: PlatformAccountantSummary }
 
 export default function PlatformAccountantsPage() {
   const accountantsQuery = usePlatformAccountants()
+  const deactivateAccountant = useDeactivatePlatformAccountant()
+  const activateAccountant = useActivatePlatformAccountant()
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
 
   const accountants = (accountantsQuery.data ?? []).filter(
     (accountant) => accountant.role === 'ACCOUNTANT',
   )
-  const activeCount = accountants.filter((accountant) => accountant.active).length
+  const activeCount = accountants.filter((accountant) => accountant.isActive).length
   const inactiveCount = accountants.length - activeCount
+  const isMutating = deactivateAccountant.isPending || activateAccountant.isPending
 
-  const columns: DataTableColumn<PlatformUserSummary>[] = [
+  function handleToggleAccountant(accountant: PlatformAccountantSummary) {
+    if (accountant.isActive) {
+      setPendingAction({ type: 'deactivate', accountant })
+      return
+    }
+
+    setPendingAction({ type: 'activate', accountant })
+  }
+
+  function handleConfirmAction() {
+    if (!pendingAction) {
+      return
+    }
+
+    if (pendingAction.type === 'deactivate') {
+      deactivateAccountant.mutate(pendingAction.accountant.id, { onSuccess: () => setPendingAction(null) })
+      return
+    }
+
+    activateAccountant.mutate(pendingAction.accountant.id, { onSuccess: () => setPendingAction(null) })
+  }
+
+  const confirmDialog =
+    pendingAction?.type === 'activate'
+      ? {
+          title: '회계 계정을 활성화하시겠습니까?',
+          description: '이 회계 계정을 다시 활성화하시겠습니까?',
+          confirmLabel: '활성화',
+          variant: 'default' as const,
+        }
+      : {
+          title: '회계 계정을 비활성화하시겠습니까?',
+          description: '이 회계 계정을 비활성화하시겠습니까?',
+          confirmLabel: '비활성화',
+          variant: 'destructive' as const,
+        }
+
+  const columns: DataTableColumn<PlatformAccountantSummary>[] = [
     {
       key: 'name',
       header: '이름',
@@ -41,24 +92,30 @@ export default function PlatformAccountantsPage() {
         <span
           className={[
             'inline-flex rounded-full px-2 py-1 text-xs font-semibold',
-            accountant.active ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted',
+            accountant.isActive ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted',
           ].join(' ')}
         >
-          {accountant.active ? '활성' : '비활성'}
+          {accountant.isActive ? '활성' : '비활성'}
         </span>
       ),
     },
     {
       key: 'actions',
       header: '관리',
-      render: () => (
+      render: (accountant) => (
         <button
           type="button"
-          disabled
-          className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-muted"
-          title="ACCOUNTANT 비활성 처리는 다음 단계에서 구현됩니다."
+          disabled={isMutating}
+          onClick={() => handleToggleAccountant(accountant)}
+          className={[
+            'rounded-md border border-line px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:text-muted disabled:opacity-55',
+            accountant.isActive
+              ? 'text-danger hover:border-danger hover:bg-danger/5 focus-visible:outline-danger'
+              : 'text-primary hover:border-primary hover:bg-surface focus-visible:outline-primary',
+          ].join(' ')}
+          title={accountant.isActive ? 'ACCOUNTANT 계정을 비활성 처리합니다.' : 'ACCOUNTANT 계정을 다시 활성화합니다.'}
         >
-          비활성
+          {accountant.isActive ? '비활성화' : '활성화'}
         </button>
       ),
     },
@@ -66,6 +123,18 @@ export default function PlatformAccountantsPage() {
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        cancelLabel="취소"
+        variant={confirmDialog.variant}
+        isPending={isMutating}
+        onConfirm={handleConfirmAction}
+        onCancel={() => setPendingAction(null)}
+      />
+
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">ACCOUNTANT 관리</h1>

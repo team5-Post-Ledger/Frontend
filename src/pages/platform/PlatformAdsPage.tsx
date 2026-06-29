@@ -1,12 +1,20 @@
+import { useState } from 'react'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
 import type { PlatformAdSummary } from '../../features/platform/api'
 import {
   usePlatformAds,
   usePlatformAdSlots,
   usePlatformExhibitions,
+  useUpdatePlatformAdSlot,
+  useUpdatePlatformAdStatus,
 } from '../../features/platform/hooks'
 import { formatCurrency, formatDateTime } from '../../lib/format'
 import type { AdSlot, AdSlotStatus, AdvertisementStatus } from '../../types'
+
+type PendingAction =
+  | { type: 'slot-status'; slotId: number; targetStatus: AdSlotStatus }
+  | { type: 'ad-status'; adId: number; targetStatus: AdvertisementStatus; label: string }
 
 const AD_SLOT_STATUS_BADGE: Record<AdSlotStatus, { label: string; className: string }> = {
   ACTIVE: { label: 'ACTIVE', className: 'bg-success/10 text-success' },
@@ -61,10 +69,24 @@ function getSlotScope(slot: AdSlot, exhibitionTitles: Map<number, string>) {
   return exhibitionTitles.get(slot.exhibitionId) ?? `행사 #${slot.exhibitionId}`
 }
 
+function getNextAdSlotStatus(status: AdSlotStatus): AdSlotStatus {
+  return status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+}
+
+function getAdStatusAction(status: AdvertisementStatus): { label: string; targetStatus: AdvertisementStatus | null } {
+  if (status === 'DRAFT') return { label: '집행 시작', targetStatus: 'ACTIVE' }
+  if (status === 'ACTIVE') return { label: '일시중지', targetStatus: 'PAUSED' }
+  if (status === 'PAUSED') return { label: '재개', targetStatus: 'ACTIVE' }
+  return { label: '만료됨', targetStatus: null }
+}
+
 export default function PlatformAdsPage() {
   const adsQuery = usePlatformAds()
   const adSlotsQuery = usePlatformAdSlots()
   const exhibitionsQuery = usePlatformExhibitions()
+  const updateAdSlot = useUpdatePlatformAdSlot()
+  const updateAdStatus = useUpdatePlatformAdStatus()
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
 
   const ads = adsQuery.data ?? []
   const adSlots = adSlotsQuery.data ?? []
@@ -78,6 +100,63 @@ export default function PlatformAdsPage() {
   const totalImpressions = ads.reduce((sum, ad) => sum + ad.impressions, 0)
   const totalClicks = ads.reduce((sum, ad) => sum + ad.clicks, 0)
   const hasError = adsQuery.isError || adSlotsQuery.isError
+  const isMutating = updateAdSlot.isPending || updateAdStatus.isPending
+
+  function handleAdSlotStatusChange(slot: AdSlot) {
+    const nextStatus = getNextAdSlotStatus(slot.status)
+    setPendingAction({ type: 'slot-status', slotId: slot.id, targetStatus: nextStatus })
+  }
+
+  function handleAdStatusChange(ad: PlatformAdSummary, targetStatus: AdvertisementStatus | null, label: string) {
+    if (targetStatus === null) {
+      return
+    }
+
+    setPendingAction({ type: 'ad-status', adId: ad.id, targetStatus, label })
+  }
+
+  function handleConfirmAction() {
+    if (!pendingAction) {
+      return
+    }
+
+    if (pendingAction.type === 'slot-status') {
+      updateAdSlot.mutate(
+        {
+          slotId: pendingAction.slotId,
+          input: { status: pendingAction.targetStatus },
+        },
+        { onSuccess: () => setPendingAction(null) },
+      )
+      return
+    }
+
+    updateAdStatus.mutate(
+      { adId: pendingAction.adId, status: pendingAction.targetStatus },
+      { onSuccess: () => setPendingAction(null) },
+    )
+  }
+
+  const confirmDialog =
+    pendingAction?.type === 'slot-status'
+      ? {
+          title:
+            pendingAction.targetStatus === 'INACTIVE'
+              ? '광고 슬롯을 비활성화하시겠습니까?'
+              : '광고 슬롯을 활성화하시겠습니까?',
+          description:
+            pendingAction.targetStatus === 'INACTIVE'
+              ? '이 광고 슬롯을 비활성화하시겠습니까?'
+              : '이 광고 슬롯을 활성화하시겠습니까?',
+          confirmLabel: pendingAction.targetStatus === 'INACTIVE' ? '비활성화' : '활성화',
+          variant: pendingAction.targetStatus === 'INACTIVE' ? ('destructive' as const) : ('default' as const),
+        }
+      : {
+          title: '광고 상태를 변경하시겠습니까?',
+          description: pendingAction ? `이 광고를 ${pendingAction.label} 상태로 변경하시겠습니까?` : '',
+          confirmLabel: pendingAction?.label ?? '확인',
+          variant: pendingAction?.targetStatus === 'PAUSED' ? ('destructive' as const) : ('default' as const),
+        }
 
   const adSlotColumns: DataTableColumn<AdSlot>[] = [
     {
@@ -111,7 +190,19 @@ export default function PlatformAdsPage() {
       key: 'actions',
       header: '관리',
       align: 'right',
-      render: () => <DisabledActionButton>수정</DisabledActionButton>,
+      render: (slot) => (
+        <div className="flex min-w-[150px] flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            disabled={isMutating}
+            onClick={() => handleAdSlotStatusChange(slot)}
+            className="px-2.5 py-1.5 text-xs font-bold text-primary ring-1 ring-line transition-colors hover:text-primary-hover hover:ring-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {slot.status === 'ACTIVE' ? '비활성화' : '활성화'}
+          </button>
+          <DisabledActionButton>수정</DisabledActionButton>
+        </div>
+      ),
     },
   ]
 
@@ -183,12 +274,40 @@ export default function PlatformAdsPage() {
       key: 'actions',
       header: '관리',
       align: 'right',
-      render: () => <DisabledActionButton>상세</DisabledActionButton>,
+      render: (ad) => {
+        const action = getAdStatusAction(ad.status)
+
+        return (
+          <div className="flex min-w-[150px] flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              disabled={isMutating || action.targetStatus === null}
+              onClick={() => handleAdStatusChange(ad, action.targetStatus, action.label)}
+              className="px-2.5 py-1.5 text-xs font-bold text-primary ring-1 ring-line transition-colors hover:text-primary-hover hover:ring-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:text-muted disabled:opacity-55"
+            >
+              {action.label}
+            </button>
+            <DisabledActionButton>상세</DisabledActionButton>
+          </div>
+        )
+      },
     },
   ]
 
   return (
     <section className="space-y-6">
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        cancelLabel="취소"
+        variant={confirmDialog.variant}
+        isPending={isMutating}
+        onConfirm={handleConfirmAction}
+        onCancel={() => setPendingAction(null)}
+      />
+
       <div className="flex flex-col gap-4 border-b border-line pb-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="text-xs font-bold uppercase tracking-wider text-primary">PLATFORM_ADMIN</div>

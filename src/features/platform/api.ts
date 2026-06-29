@@ -3,12 +3,15 @@ import { mockDelay } from '../../lib/api/mockClient'
 
 export interface PlatformExhibitionSummary extends Exhibition {
   adminCount: number
-  accountantCount: number
 }
 
-export interface PlatformUserSummary extends User {
+export interface PlatformAdminSummary extends User {
   assignedExhibitionIds: number[]
-  active: boolean
+  isActive: boolean
+}
+
+export interface PlatformAccountantSummary extends User {
+  isActive: boolean
 }
 
 export interface PlatformAdSummary extends Advertisement {
@@ -45,7 +48,68 @@ export interface PlatformExhibitionStatsSummary {
   adRevenue: number
 }
 
-const PLATFORM_EXHIBITIONS: PlatformExhibitionSummary[] = [
+export type CreatePlatformExhibitionInput = Pick<
+  Exhibition,
+  'title' | 'slug' | 'venue' | 'address' | 'startDate' | 'endDate'
+> &
+  Partial<Pick<Exhibition, 'status' | 'floorMapMeta' | 'enforceStaffQualification' | 'createdBy'>>
+
+export type UpdatePlatformExhibitionInput = Partial<
+  Pick<
+    Exhibition,
+    | 'title'
+    | 'slug'
+    | 'venue'
+    | 'address'
+    | 'floorMapMeta'
+    | 'startDate'
+    | 'endDate'
+    | 'status'
+    | 'enforceStaffQualification'
+  >
+>
+
+export interface CreatePlatformAdminInput {
+  email: string
+  name: string
+  phone?: string | null
+  exhibitionId?: number
+}
+
+export interface CreatePlatformAccountantInput {
+  email: string
+  name: string
+  phone?: string | null
+}
+
+export type CreatePlatformAdSlotInput = Pick<AdSlot, 'exhibitionId' | 'placement' | 'basePrice'> &
+  Partial<Pick<AdSlot, 'status'>>
+
+export type UpdatePlatformAdSlotInput = Partial<Pick<AdSlot, 'exhibitionId' | 'placement' | 'basePrice' | 'status'>>
+
+export type CreatePlatformAdInput = Pick<
+  Advertisement,
+  'adSlotId' | 'advertiserName' | 'title' | 'imageUrl' | 'linkUrl' | 'startAt' | 'endAt' | 'price'
+> &
+  Partial<Pick<Advertisement, 'exhibitorId' | 'status'>>
+
+export type UpdatePlatformAdInput = Partial<
+  Pick<
+    Advertisement,
+    | 'adSlotId'
+    | 'advertiserName'
+    | 'exhibitorId'
+    | 'title'
+    | 'imageUrl'
+    | 'linkUrl'
+    | 'startAt'
+    | 'endAt'
+    | 'price'
+    | 'status'
+  >
+>
+
+let PLATFORM_EXHIBITIONS: PlatformExhibitionSummary[] = [
   {
     id: 1,
     title: '2026 서울 스마트팩토리 박람회',
@@ -60,7 +124,6 @@ const PLATFORM_EXHIBITIONS: PlatformExhibitionSummary[] = [
     createdBy: 1,
     deletedAt: null,
     adminCount: 2,
-    accountantCount: 1,
   },
   {
     id: 13,
@@ -76,7 +139,6 @@ const PLATFORM_EXHIBITIONS: PlatformExhibitionSummary[] = [
     createdBy: 1,
     deletedAt: null,
     adminCount: 1,
-    accountantCount: 0,
   },
   {
     id: 12,
@@ -92,11 +154,14 @@ const PLATFORM_EXHIBITIONS: PlatformExhibitionSummary[] = [
     createdBy: 1,
     deletedAt: null,
     adminCount: 1,
-    accountantCount: 1,
   },
 ]
 
-const PLATFORM_ADMINS: PlatformUserSummary[] = [
+type PlatformAdminRecord = User & {
+  assignedExhibitionIds: number[]
+}
+
+let PLATFORM_ADMINS: PlatformAdminRecord[] = [
   {
     id: 2,
     email: 'admin@fairpilot.io',
@@ -105,7 +170,6 @@ const PLATFORM_ADMINS: PlatformUserSummary[] = [
     role: 'EXPO_ADMIN',
     deletedAt: null,
     assignedExhibitionIds: [1, 13],
-    active: true,
   },
   {
     id: 7,
@@ -115,7 +179,6 @@ const PLATFORM_ADMINS: PlatformUserSummary[] = [
     role: 'EXPO_ADMIN',
     deletedAt: null,
     assignedExhibitionIds: [12],
-    active: true,
   },
   {
     id: 8,
@@ -125,11 +188,10 @@ const PLATFORM_ADMINS: PlatformUserSummary[] = [
     role: 'EXPO_ADMIN',
     deletedAt: null,
     assignedExhibitionIds: [],
-    active: false,
   },
 ]
 
-const PLATFORM_ACCOUNTANTS: PlatformUserSummary[] = [
+let PLATFORM_ACCOUNTANTS: User[] = [
   {
     id: 4,
     email: 'accountant@fairpilot.io',
@@ -137,8 +199,6 @@ const PLATFORM_ACCOUNTANTS: PlatformUserSummary[] = [
     phone: null,
     role: 'ACCOUNTANT',
     deletedAt: null,
-    assignedExhibitionIds: [1],
-    active: true,
   },
   {
     id: 9,
@@ -147,8 +207,6 @@ const PLATFORM_ACCOUNTANTS: PlatformUserSummary[] = [
     phone: '010-9999-9999',
     role: 'ACCOUNTANT',
     deletedAt: null,
-    assignedExhibitionIds: [],
-    active: true,
   },
   {
     id: 10,
@@ -156,13 +214,11 @@ const PLATFORM_ACCOUNTANTS: PlatformUserSummary[] = [
     name: '최마감',
     phone: '010-1010-1010',
     role: 'ACCOUNTANT',
-    deletedAt: null,
-    assignedExhibitionIds: [],
-    active: false,
+    deletedAt: '2026-08-31T18:00:00',
   },
 ]
 
-const PLATFORM_AD_SLOTS: AdSlot[] = [
+let PLATFORM_AD_SLOTS: AdSlot[] = [
   {
     id: 1,
     exhibitionId: null,
@@ -192,7 +248,7 @@ const PLATFORM_AD_SLOTS: AdSlot[] = [
   },
 ]
 
-const PLATFORM_ADS: PlatformAdSummary[] = [
+let PLATFORM_ADS: Advertisement[] = [
   {
     id: 1,
     adSlotId: 1,
@@ -209,8 +265,6 @@ const PLATFORM_ADS: PlatformAdSummary[] = [
     clicks: 318,
     createdAt: '2026-08-01T09:00:00',
     updatedAt: '2026-08-10T09:00:00',
-    placement: 'HOME_TOP',
-    exhibitionTitle: null,
   },
   {
     id: 2,
@@ -228,8 +282,6 @@ const PLATFORM_ADS: PlatformAdSummary[] = [
     clicks: 0,
     createdAt: '2026-08-12T10:00:00',
     updatedAt: '2026-08-12T10:00:00',
-    placement: 'EXPO_BANNER',
-    exhibitionTitle: '2026 서울 스마트팩토리 박람회',
   },
   {
     id: 3,
@@ -247,8 +299,6 @@ const PLATFORM_ADS: PlatformAdSummary[] = [
     clicks: 64,
     createdAt: '2026-08-13T10:00:00',
     updatedAt: '2026-08-20T10:00:00',
-    placement: 'EXPO_BANNER',
-    exhibitionTitle: '2026 서울 스마트팩토리 박람회',
   },
   {
     id: 4,
@@ -266,14 +316,13 @@ const PLATFORM_ADS: PlatformAdSummary[] = [
     clicks: 181,
     createdAt: '2026-05-20T10:00:00',
     updatedAt: '2026-06-16T10:00:00',
-    placement: 'BOOTH_RECOMMEND',
-    exhibitionTitle: '2027 스마트시티 박람회',
   },
 ]
 
-const PLATFORM_STATS: PlatformStatsOverview = {
-  exhibitionCount: PLATFORM_EXHIBITIONS.length,
-  openExhibitionCount: 1,
+const PLATFORM_STATS_BASE: Omit<
+  PlatformStatsOverview,
+  'exhibitionCount' | 'openExhibitionCount' | 'activeAdCount' | 'adImpressions' | 'adClicks'
+> = {
   grossAmount: 28400000,
   onlineAmount: 22300000,
   onsiteAmount: 6100000,
@@ -282,9 +331,6 @@ const PLATFORM_STATS: PlatformStatsOverview = {
   visitorCount: 12640,
   reservationCount: 1800,
   adRevenue: 1780000,
-  activeAdCount: PLATFORM_ADS.filter((ad) => ad.status === 'ACTIVE').length,
-  adImpressions: PLATFORM_ADS.reduce((sum, ad) => sum + ad.impressions, 0),
-  adClicks: PLATFORM_ADS.reduce((sum, ad) => sum + ad.clicks, 0),
   exhibitionSummaries: [
     {
       exhibitionId: 1,
@@ -322,6 +368,69 @@ const PLATFORM_STATS: PlatformStatsOverview = {
   ],
 }
 
+function nowIso() {
+  return new Date().toISOString()
+}
+
+function nextId(records: Array<{ id: number }>) {
+  return Math.max(0, ...records.map((record) => record.id)) + 1
+}
+
+function toPlatformAdminSummary(admin: PlatformAdminRecord): PlatformAdminSummary {
+  return {
+    ...admin,
+    isActive: admin.deletedAt === null,
+  }
+}
+
+function toPlatformAccountantSummary(accountant: User): PlatformAccountantSummary {
+  return {
+    ...accountant,
+    isActive: accountant.deletedAt === null,
+  }
+}
+
+function toPlatformAdSummary(ad: Advertisement): PlatformAdSummary {
+  const slot = PLATFORM_AD_SLOTS.find((item) => item.id === ad.adSlotId)
+  const exhibition = slot?.exhibitionId
+    ? PLATFORM_EXHIBITIONS.find((item) => item.id === slot.exhibitionId)
+    : null
+
+  return {
+    ...ad,
+    placement: slot?.placement ?? `SLOT_${ad.adSlotId}`,
+    exhibitionTitle: exhibition?.title ?? null,
+  }
+}
+
+function buildPlatformStatsOverview(): PlatformStatsOverview {
+  const activeExhibitions = PLATFORM_EXHIBITIONS.filter((exhibition) => exhibition.deletedAt === null)
+
+  return {
+    ...PLATFORM_STATS_BASE,
+    exhibitionCount: activeExhibitions.length,
+    openExhibitionCount: activeExhibitions.filter((exhibition) => exhibition.status === 'OPEN').length,
+    activeAdCount: PLATFORM_ADS.filter((ad) => ad.status === 'ACTIVE').length,
+    adImpressions: PLATFORM_ADS.reduce((sum, ad) => sum + ad.impressions, 0),
+    adClicks: PLATFORM_ADS.reduce((sum, ad) => sum + ad.clicks, 0),
+    exhibitionSummaries: activeExhibitions.map((exhibition) => {
+      const summary = PLATFORM_STATS_BASE.exhibitionSummaries.find((item) => item.exhibitionId === exhibition.id)
+
+      return {
+        exhibitionId: exhibition.id,
+        title: exhibition.title,
+        status: exhibition.status,
+        startDate: exhibition.startDate,
+        endDate: exhibition.endDate,
+        grossAmount: summary?.grossAmount ?? 0,
+        visitorCount: summary?.visitorCount ?? 0,
+        reservationCount: summary?.reservationCount ?? 0,
+        adRevenue: summary?.adRevenue ?? 0,
+      }
+    }),
+  }
+}
+
 export async function listPlatformExhibitions(options: { fail?: boolean } = {}): Promise<PlatformExhibitionSummary[]> {
   if (options.fail) {
     return new Promise((_, reject) => {
@@ -329,32 +438,32 @@ export async function listPlatformExhibitions(options: { fail?: boolean } = {}):
     })
   }
 
-  return mockDelay(PLATFORM_EXHIBITIONS, 500)
+  return mockDelay(PLATFORM_EXHIBITIONS.filter((exhibition) => exhibition.deletedAt === null), 500)
 }
 
 export async function getPlatformExhibition(id: number): Promise<PlatformExhibitionSummary | null> {
-  return mockDelay(PLATFORM_EXHIBITIONS.find((exhibition) => exhibition.id === id) ?? null, 450)
+  return mockDelay(PLATFORM_EXHIBITIONS.find((exhibition) => exhibition.id === id && exhibition.deletedAt === null) ?? null, 450)
 }
 
-export async function listPlatformExhibitionAdmins(exhibitionId: number): Promise<PlatformUserSummary[]> {
+export async function listPlatformExhibitionAdmins(exhibitionId: number): Promise<PlatformAdminSummary[]> {
   return mockDelay(
     PLATFORM_ADMINS.filter(
       (admin) => admin.role === 'EXPO_ADMIN' && admin.assignedExhibitionIds.includes(exhibitionId),
-    ),
+    ).map(toPlatformAdminSummary),
     450,
   )
 }
 
-export async function listPlatformAdmins(): Promise<PlatformUserSummary[]> {
+export async function listPlatformAdmins(): Promise<PlatformAdminSummary[]> {
   return mockDelay(
-    PLATFORM_ADMINS.filter((admin) => admin.role === 'EXPO_ADMIN'),
+    PLATFORM_ADMINS.filter((admin) => admin.role === 'EXPO_ADMIN').map(toPlatformAdminSummary),
     500,
   )
 }
 
-export async function listPlatformAccountants(): Promise<PlatformUserSummary[]> {
+export async function listPlatformAccountants(): Promise<PlatformAccountantSummary[]> {
   return mockDelay(
-    PLATFORM_ACCOUNTANTS.filter((accountant) => accountant.role === 'ACCOUNTANT'),
+    PLATFORM_ACCOUNTANTS.filter((accountant) => accountant.role === 'ACCOUNTANT').map(toPlatformAccountantSummary),
     500,
   )
 }
@@ -364,9 +473,205 @@ export async function listPlatformAdSlots(): Promise<AdSlot[]> {
 }
 
 export async function listPlatformAds(): Promise<PlatformAdSummary[]> {
-  return mockDelay(PLATFORM_ADS, 500)
+  return mockDelay(PLATFORM_ADS.map(toPlatformAdSummary), 500)
 }
 
 export async function getPlatformStatsOverview(): Promise<PlatformStatsOverview> {
-  return mockDelay(PLATFORM_STATS, 500)
+  return mockDelay(buildPlatformStatsOverview(), 500)
+}
+
+export async function createPlatformExhibition(input: CreatePlatformExhibitionInput): Promise<PlatformExhibitionSummary> {
+  const created: PlatformExhibitionSummary = {
+    id: nextId(PLATFORM_EXHIBITIONS),
+    title: input.title,
+    slug: input.slug,
+    venue: input.venue,
+    address: input.address,
+    floorMapMeta: input.floorMapMeta ?? null,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    status: input.status ?? 'DRAFT',
+    enforceStaffQualification: input.enforceStaffQualification ?? false,
+    createdBy: input.createdBy ?? 1,
+    deletedAt: null,
+    adminCount: 0,
+  }
+
+  PLATFORM_EXHIBITIONS = [created, ...PLATFORM_EXHIBITIONS]
+  return mockDelay(created, 350)
+}
+
+export async function updatePlatformExhibition(
+  id: number,
+  input: UpdatePlatformExhibitionInput,
+): Promise<PlatformExhibitionSummary> {
+  const exhibition = PLATFORM_EXHIBITIONS.find((item) => item.id === id && item.deletedAt === null)
+  if (!exhibition) {
+    throw new Error('Platform exhibition not found')
+  }
+
+  Object.assign(exhibition, input)
+  return mockDelay(exhibition, 350)
+}
+
+export async function updatePlatformExhibitionStatus(
+  id: number,
+  status: Exhibition['status'],
+): Promise<PlatformExhibitionSummary> {
+  return updatePlatformExhibition(id, { status })
+}
+
+export async function deletePlatformExhibition(id: number): Promise<void> {
+  const exhibition = PLATFORM_EXHIBITIONS.find((item) => item.id === id && item.deletedAt === null)
+  if (!exhibition) {
+    throw new Error('Platform exhibition not found')
+  }
+
+  exhibition.deletedAt = nowIso()
+  await mockDelay(null, 350)
+}
+
+export async function createPlatformAdmin(input: CreatePlatformAdminInput): Promise<PlatformAdminSummary> {
+  const created: PlatformAdminRecord = {
+    id: nextId([...PLATFORM_ADMINS, ...PLATFORM_ACCOUNTANTS]),
+    email: input.email,
+    name: input.name,
+    phone: input.phone ?? null,
+    role: 'EXPO_ADMIN',
+    deletedAt: null,
+    assignedExhibitionIds: input.exhibitionId ? [input.exhibitionId] : [],
+  }
+
+  PLATFORM_ADMINS = [created, ...PLATFORM_ADMINS]
+  if (input.exhibitionId) {
+    const exhibition = PLATFORM_EXHIBITIONS.find((item) => item.id === input.exhibitionId)
+    if (exhibition) {
+      exhibition.adminCount = PLATFORM_ADMINS.filter((admin) =>
+        admin.assignedExhibitionIds.includes(input.exhibitionId as number),
+      ).length
+    }
+  }
+  return mockDelay(toPlatformAdminSummary(created), 350)
+}
+
+export async function assignPlatformAdmin(exhibitionId: number, userId: number): Promise<PlatformAdminSummary> {
+  const admin = PLATFORM_ADMINS.find((item) => item.id === userId && item.role === 'EXPO_ADMIN')
+  if (!admin) {
+    throw new Error('Platform admin not found')
+  }
+
+  if (!admin.assignedExhibitionIds.includes(exhibitionId)) {
+    admin.assignedExhibitionIds = [...admin.assignedExhibitionIds, exhibitionId]
+  }
+  const exhibition = PLATFORM_EXHIBITIONS.find((item) => item.id === exhibitionId)
+  if (exhibition) {
+    exhibition.adminCount = PLATFORM_ADMINS.filter((item) => item.assignedExhibitionIds.includes(exhibitionId)).length
+  }
+
+  return mockDelay(toPlatformAdminSummary(admin), 350)
+}
+
+export async function createPlatformAccountant(
+  input: CreatePlatformAccountantInput,
+): Promise<PlatformAccountantSummary> {
+  const created: User = {
+    id: nextId([...PLATFORM_ADMINS, ...PLATFORM_ACCOUNTANTS]),
+    email: input.email,
+    name: input.name,
+    phone: input.phone ?? null,
+    role: 'ACCOUNTANT',
+    deletedAt: null,
+  }
+
+  PLATFORM_ACCOUNTANTS = [created, ...PLATFORM_ACCOUNTANTS]
+  return mockDelay(toPlatformAccountantSummary(created), 350)
+}
+
+export async function deactivatePlatformAccountant(userId: number): Promise<PlatformAccountantSummary> {
+  const accountant = PLATFORM_ACCOUNTANTS.find((item) => item.id === userId && item.role === 'ACCOUNTANT')
+  if (!accountant) {
+    throw new Error('Platform accountant not found')
+  }
+
+  accountant.deletedAt = accountant.deletedAt ?? nowIso()
+  return mockDelay(toPlatformAccountantSummary(accountant), 350)
+}
+
+export async function activatePlatformAccountant(userId: number): Promise<PlatformAccountantSummary> {
+  const accountant = PLATFORM_ACCOUNTANTS.find((item) => item.id === userId && item.role === 'ACCOUNTANT')
+  if (!accountant) {
+    throw new Error('Platform accountant not found')
+  }
+
+  accountant.deletedAt = null
+  return mockDelay(toPlatformAccountantSummary(accountant), 350)
+}
+
+export async function createPlatformAdSlot(input: CreatePlatformAdSlotInput): Promise<AdSlot> {
+  const created: AdSlot = {
+    id: nextId(PLATFORM_AD_SLOTS),
+    exhibitionId: input.exhibitionId,
+    placement: input.placement,
+    basePrice: input.basePrice,
+    status: input.status ?? 'ACTIVE',
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  }
+
+  PLATFORM_AD_SLOTS = [created, ...PLATFORM_AD_SLOTS]
+  return mockDelay(created, 350)
+}
+
+export async function updatePlatformAdSlot(slotId: number, input: UpdatePlatformAdSlotInput): Promise<AdSlot> {
+  const slot = PLATFORM_AD_SLOTS.find((item) => item.id === slotId)
+  if (!slot) {
+    throw new Error('Platform ad slot not found')
+  }
+
+  Object.assign(slot, input, { updatedAt: nowIso() })
+  return mockDelay(slot, 350)
+}
+
+export async function deletePlatformAdSlot(slotId: number): Promise<void> {
+  await updatePlatformAdSlot(slotId, { status: 'INACTIVE' })
+}
+
+export async function createPlatformAd(input: CreatePlatformAdInput): Promise<PlatformAdSummary> {
+  const created: Advertisement = {
+    id: nextId(PLATFORM_ADS),
+    adSlotId: input.adSlotId,
+    advertiserName: input.advertiserName,
+    exhibitorId: input.exhibitorId ?? null,
+    title: input.title,
+    imageUrl: input.imageUrl,
+    linkUrl: input.linkUrl,
+    startAt: input.startAt,
+    endAt: input.endAt,
+    price: input.price,
+    status: input.status ?? 'DRAFT',
+    impressions: 0,
+    clicks: 0,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  }
+
+  PLATFORM_ADS = [created, ...PLATFORM_ADS]
+  return mockDelay(toPlatformAdSummary(created), 350)
+}
+
+export async function updatePlatformAd(adId: number, input: UpdatePlatformAdInput): Promise<PlatformAdSummary> {
+  const ad = PLATFORM_ADS.find((item) => item.id === adId)
+  if (!ad) {
+    throw new Error('Platform ad not found')
+  }
+
+  Object.assign(ad, input, { updatedAt: nowIso() })
+  return mockDelay(toPlatformAdSummary(ad), 350)
+}
+
+export async function updatePlatformAdStatus(
+  adId: number,
+  status: Advertisement['status'],
+): Promise<PlatformAdSummary> {
+  return updatePlatformAd(adId, { status })
 }
