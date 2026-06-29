@@ -67,8 +67,11 @@ import { AdminLayout } from './layouts/AdminLayout'
 import { AuthLayout } from './layouts/AuthLayout'
 import { MobileLayout } from './layouts/MobileLayout'
 import { PlatformLayout } from './layouts/PlatformLayout'
+import { ScannerLayout } from './layouts/ScannerLayout'
 import { StaffLayout } from './layouts/StaffLayout'
 import { VisitorLayout } from './layouts/VisitorLayout'
+import ScannerSelectPage from '../pages/exhibitor/ScannerSelectPage'
+import ScannerPage from '../pages/exhibitor/ScannerPage'
 
 function Stub({ label }: { label: string }) {
   return <p className="text-sm text-muted">{label}</p>
@@ -195,10 +198,17 @@ export function AppRouter() {
         </Route>
       </Route>
 
-      {/* EXHIBITOR 전용 모바일 셸 */}
+      {/* EXHIBITOR 스캐너 — /scanner: ScannerLayout(최소 헤더), /scanner/:id: 풀스크린(셸 없음) */}
+      <Route element={<ProtectedRoute roles={['EXHIBITOR']} />}>
+        <Route element={<ScannerLayout />}>
+          <Route path="scanner" element={<ScannerSelectPage />} />
+        </Route>
+        <Route path="scanner/:scanPointId" element={<ScannerPage />} />
+      </Route>
+
+      {/* EXHIBITOR 리포트·기타 (PR2 ExhibitorLayout 연결 전 임시 stub) */}
       <Route element={<MobileLayout />}>
         <Route element={<ProtectedRoute roles={['EXHIBITOR']} />}>
-          <Route path="scanner/*" element={<Stub label="스캐너" />} />
           <Route path="exhibitor/*" element={<Stub label="참가기업 리포트" />} />
         </Route>
       </Route>
