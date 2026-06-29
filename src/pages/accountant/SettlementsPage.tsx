@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import type { SettlementStatus } from '../../types'
 import { useGenerateSettlement, useSettlements } from '../../features/settlements/hooks'
 import { listPlatformExhibitions } from '../../features/platform/api'
@@ -310,7 +311,12 @@ export default function SettlementsPage() {
                   className="border-b border-line last:border-0"
                 >
                   <td className="py-3 pr-4">
-                    <span className="font-semibold text-ink">{s.exhibitionTitle}</span>
+                    <Link
+                      to={`/settlements/${s.id}`}
+                      className="font-semibold text-ink hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                    >
+                      {s.exhibitionTitle}
+                    </Link>
                   </td>
                   <td className="py-3 pr-4 text-muted">
                     {formatDate(s.periodStart)} – {formatDate(s.periodEnd)}

@@ -144,7 +144,11 @@ function getAdStatusAction(status: AdvertisementStatus): { label: string; target
   return { label: '만료됨', targetStatus: null }
 }
 
-function isLikelyHttpUrl(value: string) {
+function isLikelyUrlOrInternalPath(value: string) {
+  if (value.startsWith('/')) {
+    return true
+  }
+
   try {
     const url = new URL(value)
     return url.protocol === 'http:' || url.protocol === 'https:'
@@ -246,11 +250,11 @@ export default function PlatformAdsPage() {
 
     if (!imageUrl) {
       nextErrors.imageUrl = '이미지 URL을 입력해 주세요.'
-    } else if (!isLikelyHttpUrl(imageUrl)) {
+    } else if (!isLikelyUrlOrInternalPath(imageUrl)) {
       nextErrors.imageUrl = '올바른 이미지 URL을 입력해 주세요.'
     }
 
-    if (linkUrl && !isLikelyHttpUrl(linkUrl)) {
+    if (linkUrl && !isLikelyUrlOrInternalPath(linkUrl)) {
       nextErrors.linkUrl = '올바른 링크 URL을 입력해 주세요.'
     }
 
@@ -367,11 +371,11 @@ export default function PlatformAdsPage() {
 
     if (!imageUrl) {
       nextErrors.imageUrl = '이미지 URL을 입력해 주세요.'
-    } else if (!isLikelyHttpUrl(imageUrl)) {
+    } else if (!isLikelyUrlOrInternalPath(imageUrl)) {
       nextErrors.imageUrl = '올바른 이미지 URL을 입력해 주세요.'
     }
 
-    if (linkUrl && !isLikelyHttpUrl(linkUrl)) {
+    if (linkUrl && !isLikelyUrlOrInternalPath(linkUrl)) {
       nextErrors.linkUrl = '올바른 링크 URL을 입력해 주세요.'
     }
 
@@ -414,7 +418,7 @@ export default function PlatformAdsPage() {
           advertiserName: editAdFormValues.advertiserName.trim(),
           title: editAdFormValues.title.trim(),
           imageUrl: editAdFormValues.imageUrl.trim(),
-          linkUrl: editAdFormValues.linkUrl.trim() || undefined,
+          linkUrl: editAdFormValues.linkUrl.trim(),
           startAt: editAdFormValues.startAt,
           endAt: editAdFormValues.endAt,
           price: Number(editAdFormValues.price),

@@ -75,6 +75,7 @@ import ScannerSelectPage from '../pages/exhibitor/ScannerSelectPage'
 import ScannerPage from '../pages/exhibitor/ScannerPage'
 import ExhibitorStatsPage from '../pages/exhibitor/ExhibitorStatsPage'
 import ExhibitorBoothDetailPage from '../pages/exhibitor/ExhibitorBoothDetailPage'
+import SettlementDetailPage from '../pages/accountant/SettlementDetailPage'
 import SettlementsPage from '../pages/accountant/SettlementsPage'
 
 function Stub({ label }: { label: string }) {
@@ -167,6 +168,7 @@ export function AppRouter() {
       <Route element={<AccountantLayout />}>
         <Route element={<ProtectedRoute roles={['ACCOUNTANT']} />}>
           <Route path="settlements" element={<SettlementsPage />} />
+          <Route path="settlements/:id" element={<SettlementDetailPage />} />
         </Route>
       </Route>
 

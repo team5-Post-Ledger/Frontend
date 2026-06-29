@@ -8,7 +8,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/settlements', label: '정산 목록', end: true },
+  { to: '/settlements', label: '정산 목록' },
 ]
 
 const NAV_LINK_CLASS = ({ isActive }: { isActive: boolean }) =>

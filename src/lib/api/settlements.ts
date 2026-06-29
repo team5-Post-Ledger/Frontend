@@ -102,6 +102,67 @@ export async function getSettlements(
   return mockDelay(result.map(toSummary), 400)
 }
 
+// GET /api/settlements/{id}
+export async function getSettlement(id: number): Promise<SettlementSummary> {
+  await new Promise((r) => setTimeout(r, 300))
+  const s = SETTLEMENTS.find((item) => item.id === id)
+  if (!s) throw new Error('정산을 찾을 수 없습니다.')
+  return toSummary(s)
+}
+
+// PATCH /api/settlements/{id}/confirm — PENDING→CONFIRMED, 저장소 갱신
+export async function confirmSettlement(id: number): Promise<SettlementSummary> {
+  const idx = SETTLEMENTS.findIndex((item) => item.id === id)
+  if (idx === -1) throw new Error('정산을 찾을 수 없습니다.')
+  const s = SETTLEMENTS[idx]
+  if (s.status !== 'PENDING') throw new Error('PENDING 상태에서만 확정할 수 있습니다.')
+  const updated: Settlement = { ...s, status: 'CONFIRMED' }
+  SETTLEMENTS = SETTLEMENTS.map((item, i) => (i === idx ? updated : item))
+  return mockDelay(toSummary(updated), 400)
+}
+
+// PATCH /api/settlements/{id}/paid-out — CONFIRMED→PAID_OUT, paidOutAt 채움, 저장소 갱신
+export async function payoutSettlement(id: number): Promise<SettlementSummary> {
+  const idx = SETTLEMENTS.findIndex((item) => item.id === id)
+  if (idx === -1) throw new Error('정산을 찾을 수 없습니다.')
+  const s = SETTLEMENTS[idx]
+  if (s.status !== 'CONFIRMED') throw new Error('CONFIRMED 상태에서만 지급 처리할 수 있습니다.')
+  const updated: Settlement = { ...s, status: 'PAID_OUT', paidOutAt: new Date().toISOString() }
+  SETTLEMENTS = SETTLEMENTS.map((item, i) => (i === idx ? updated : item))
+  return mockDelay(toSummary(updated), 400)
+}
+
+// GET /api/settlements/{id}/export?format=xlsx|pdf
+// 목: 최소 blob 다운로드만 수행. 실 전환 시 이 함수 본문만 axios blob 호출로 교체.
+export async function exportSettlement(id: number, format: 'xlsx' | 'pdf'): Promise<void> {
+  await new Promise((r) => setTimeout(r, 300))
+  const s = SETTLEMENTS.find((item) => item.id === id)
+  if (!s) throw new Error('정산을 찾을 수 없습니다.')
+  const content = [
+    `정산 ID: ${id}`,
+    `행사 ID: ${s.exhibitionId}`,
+    `기간: ${s.periodStart} ~ ${s.periodEnd}`,
+    `총매출: ${s.grossAmount.toLocaleString()}원`,
+    `수수료: ${s.feeAmount.toLocaleString()}원`,
+    `광고수익: ${s.adRevenue.toLocaleString()}원`,
+    `순지급액: ${s.netPayout.toLocaleString()}원`,
+    `(목 다운로드 — 실 API 연결 시 교체)`,
+  ].join('\n')
+  const mimeType =
+    format === 'pdf'
+      ? 'application/pdf'
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `settlement-${id}.${format}`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 // POST /api/settlements/generate
 // 실제 API는 period 내 payment.status=PAID 건을 집계한다.
 // 목에서는 전시 매출 시드 비율을 기반으로 결정론적 값을 생성한다.
