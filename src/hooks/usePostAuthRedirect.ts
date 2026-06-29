@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import type { Role } from '../types'
 
-const ROLE_HOME: Record<Role, string> = {
+export const ROLE_HOME: Record<Role, string> = {
   VISITOR: '/',
   EXPO_ADMIN: '/admin',
   PLATFORM_ADMIN: '/platform/exhibitions',

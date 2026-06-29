@@ -77,6 +77,8 @@ import ExhibitorStatsPage from '../pages/exhibitor/ExhibitorStatsPage'
 import ExhibitorBoothDetailPage from '../pages/exhibitor/ExhibitorBoothDetailPage'
 import SettlementDetailPage from '../pages/accountant/SettlementDetailPage'
 import SettlementsPage from '../pages/accountant/SettlementsPage'
+import ForbiddenPage from '../pages/ForbiddenPage'
+import NotFoundPage from '../pages/NotFoundPage'
 
 function Stub({ label }: { label: string }) {
   return <p className="text-sm text-muted">{label}</p>
@@ -97,7 +99,7 @@ export function AppRouter() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
       </Route>
-      <Route path="/403" element={<Stub label="접근 권한이 없습니다" />} />
+      <Route path="/403" element={<ForbiddenPage />} />
       <Route path="/dev/primitives" element={<PrimitivesPreviewPage />} />
 
       <Route element={<VisitorLayout />}>
@@ -233,7 +235,7 @@ export function AppRouter() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }
