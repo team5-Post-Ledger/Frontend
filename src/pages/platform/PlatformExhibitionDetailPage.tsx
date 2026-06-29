@@ -3,9 +3,15 @@ import { Link, useParams } from 'react-router'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
 import { Field, fieldControlClass, fieldControlErrorClass } from '../../components/Field'
 import { QueryState } from '../../components/QueryState'
+import { StatCard } from '../../components/StatCard'
 import type { PlatformAdminSummary } from '../../features/platform/api'
-import { useAssignPlatformAdmin, usePlatformAdmins, usePlatformExhibition } from '../../features/platform/hooks'
-import { formatDateRange } from '../../lib/format'
+import {
+  useAssignPlatformAdmin,
+  usePlatformAdmins,
+  usePlatformExhibition,
+  usePlatformStatsOverview,
+} from '../../features/platform/hooks'
+import { formatCurrency, formatDateRange } from '../../lib/format'
 import type { ExhibitionStatus } from '../../types'
 
 const STATUS_BADGE: Record<ExhibitionStatus, { label: string; className: string }> = {
@@ -69,12 +75,22 @@ function InfoItem({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
+function SummaryValue({ value, hint }: { value: React.ReactNode; hint?: string }) {
+  return (
+    <div>
+      <div className="text-2xl font-semibold text-foreground">{value}</div>
+      {hint ? <p className="mt-1 text-xs font-semibold text-muted">{hint}</p> : null}
+    </div>
+  )
+}
+
 export default function PlatformExhibitionDetailPage() {
   const params = useParams()
   const exhibitionId = params.id ? Number(params.id) : null
   const validExhibitionId = Number.isFinite(exhibitionId) ? exhibitionId : null
 
   const exhibition = usePlatformExhibition(validExhibitionId)
+  const statsOverview = usePlatformStatsOverview()
   const adminsQuery = usePlatformAdmins()
   const assignAdmin = useAssignPlatformAdmin()
   const [isAssignmentFormOpen, setIsAssignmentFormOpen] = useState(false)
@@ -86,6 +102,10 @@ export default function PlatformExhibitionDetailPage() {
   const assignedAdmins = data
     ? expoAdmins.filter((admin) => admin.assignedExhibitionIds.includes(data.id))
     : []
+  const statsSummary = data
+    ? statsOverview.data?.exhibitionSummaries.find((summary) => summary.exhibitionId === data.id)
+    : undefined
+  const statsHint = statsOverview.isLoading ? undefined : statsSummary ? undefined : '집계 전'
 
   function resetAssignmentForm() {
     setAssignmentValues(INITIAL_ASSIGNMENT_FORM_VALUES)
@@ -201,10 +221,44 @@ export default function PlatformExhibitionDetailPage() {
       </section>
 
       <section>
-        <h2 className="text-base font-extrabold text-ink">통합 상태 요약</h2>
-        <div className="mt-3 border border-line bg-surface p-5">
-          <p className="text-sm text-muted">다음 PR에서 통합 상태 요약을 연결합니다.</p>
+        <div>
+          <h2 className="text-base font-extrabold text-ink">통합 상태 요약</h2>
+          <p className="mt-1 text-sm text-muted">이 행사의 매출, 방문, 예약, 광고 성과를 요약합니다.</p>
         </div>
+
+        {statsOverview.isError ? (
+          <div className="mt-3 flex min-h-32 items-center justify-center border border-line bg-white px-4 text-sm font-semibold text-danger">
+            통합 상태를 불러오지 못했습니다.
+          </div>
+        ) : (
+          <>
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <StatCard label="행사 상태">
+                <SummaryValue value={<StatusBadge status={data.status} />} />
+              </StatCard>
+              <StatCard label="운영 기간">
+                <SummaryValue value={<span className="text-lg">{formatDateRange(data.startDate, data.endDate)}</span>} />
+              </StatCard>
+              <StatCard label="총매출" isLoading={statsOverview.isLoading}>
+                <SummaryValue value={formatCurrency(statsSummary?.grossAmount ?? 0)} hint={statsHint} />
+              </StatCard>
+              <StatCard label="방문 인원" isLoading={statsOverview.isLoading}>
+                <SummaryValue value={`${(statsSummary?.visitorCount ?? 0).toLocaleString()}명`} hint={statsHint} />
+              </StatCard>
+              <StatCard label="예약 수" isLoading={statsOverview.isLoading}>
+                <SummaryValue value={`${(statsSummary?.reservationCount ?? 0).toLocaleString()}건`} hint={statsHint} />
+              </StatCard>
+              <StatCard label="광고 수익" isLoading={statsOverview.isLoading}>
+                <SummaryValue value={formatCurrency(statsSummary?.adRevenue ?? 0)} hint={statsHint} />
+              </StatCard>
+            </div>
+            {!statsOverview.isLoading && !statsSummary ? (
+              <p className="mt-3 border border-line bg-surface px-4 py-3 text-sm text-muted">
+                아직 집계된 통계가 없습니다.
+              </p>
+            ) : null}
+          </>
+        )}
       </section>
 
       <section>

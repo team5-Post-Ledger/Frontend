@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
 import { Field, fieldControlClass, fieldControlErrorClass } from '../../components/Field'
@@ -9,6 +9,7 @@ import {
   usePlatformAds,
   usePlatformAdSlots,
   usePlatformExhibitions,
+  useUpdatePlatformAd,
   useUpdatePlatformAdSlot,
   useUpdatePlatformAdStatus,
 } from '../../features/platform/hooks'
@@ -43,6 +44,20 @@ interface AdFormValues {
 }
 
 type AdFormErrors = Partial<Record<keyof AdFormValues, string>>
+
+interface EditAdFormValues {
+  adSlotId: string
+  advertiserName: string
+  title: string
+  imageUrl: string
+  linkUrl: string
+  startAt: string
+  endAt: string
+  price: string
+  status: AdvertisementStatus
+}
+
+type EditAdFormErrors = Partial<Record<keyof EditAdFormValues, string>>
 
 const PLATFORM_SCOPE_VALUE = 'platform'
 
@@ -144,12 +159,17 @@ export default function PlatformAdsPage() {
   const exhibitionsQuery = usePlatformExhibitions()
   const createAd = useCreatePlatformAd()
   const createAdSlot = useCreatePlatformAdSlot()
+  const updateAd = useUpdatePlatformAd()
   const updateAdSlot = useUpdatePlatformAdSlot()
   const updateAdStatus = useUpdatePlatformAdStatus()
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [isAdFormOpen, setIsAdFormOpen] = useState(false)
   const [adFormValues, setAdFormValues] = useState<AdFormValues>(INITIAL_AD_FORM_VALUES)
   const [adFormErrors, setAdFormErrors] = useState<AdFormErrors>({})
+  const [isEditAdFormOpen, setIsEditAdFormOpen] = useState(false)
+  const [editingAd, setEditingAd] = useState<PlatformAdSummary | null>(null)
+  const [editAdFormValues, setEditAdFormValues] = useState<EditAdFormValues | null>(null)
+  const [editAdFormErrors, setEditAdFormErrors] = useState<EditAdFormErrors>({})
   const [isSlotFormOpen, setIsSlotFormOpen] = useState(false)
   const [slotFormValues, setSlotFormValues] = useState<AdSlotFormValues>(INITIAL_AD_SLOT_FORM_VALUES)
   const [slotFormErrors, setSlotFormErrors] = useState<AdSlotFormErrors>({})
@@ -160,6 +180,9 @@ export default function PlatformAdsPage() {
   const exhibitionTitles = new Map(exhibitions.map((exhibition) => [exhibition.id, exhibition.title]))
   const slotById = new Map(adSlots.map((slot) => [slot.id, slot]))
   const activeAdSlots = adSlots.filter((slot) => slot.status === 'ACTIVE')
+  const editableAdSlots = editingAd
+    ? adSlots.filter((slot) => slot.status === 'ACTIVE' || slot.id === editingAd.adSlotId)
+    : activeAdSlots
   const placementSuggestions = Array.from(new Set(adSlots.map((slot) => slot.placement))).sort()
 
   const activeAdCount = ads.filter((ad) => ad.status === 'ACTIVE').length
@@ -167,7 +190,18 @@ export default function PlatformAdsPage() {
   const totalImpressions = ads.reduce((sum, ad) => sum + ad.impressions, 0)
   const totalClicks = ads.reduce((sum, ad) => sum + ad.clicks, 0)
   const hasError = adsQuery.isError || adSlotsQuery.isError
-  const isMutating = updateAdSlot.isPending || updateAdStatus.isPending
+  const isMutating = updateAd.isPending || updateAdSlot.isPending || updateAdStatus.isPending
+  const editAdFormRef = useRef<HTMLFormElement | null>(null)
+
+  useEffect(() => {
+    if (!isEditAdFormOpen || !editingAd || !editAdFormValues) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      editAdFormRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    })
+  }, [editAdFormValues, editingAd, isEditAdFormOpen])
 
   function resetAdForm() {
     setAdFormValues(INITIAL_AD_FORM_VALUES)
@@ -267,6 +301,129 @@ export default function PlatformAdsPage() {
         onSuccess: () => {
           resetAdForm()
           setIsAdFormOpen(false)
+        },
+      },
+    )
+  }
+
+  function resetEditAdForm() {
+    setIsEditAdFormOpen(false)
+    setEditingAd(null)
+    setEditAdFormValues(null)
+    setEditAdFormErrors({})
+    updateAd.reset()
+  }
+
+  function handleOpenEditAdForm(ad: PlatformAdSummary) {
+    updateAd.reset()
+    setEditingAd(ad)
+    setEditAdFormValues({
+      adSlotId: String(ad.adSlotId),
+      advertiserName: ad.advertiserName,
+      title: ad.title,
+      imageUrl: ad.imageUrl,
+      linkUrl: ad.linkUrl ?? '',
+      startAt: ad.startAt,
+      endAt: ad.endAt,
+      price: String(ad.price),
+      status: ad.status,
+    })
+    setEditAdFormErrors({})
+    setIsEditAdFormOpen(true)
+  }
+
+  function handleCancelEditAdForm() {
+    if (updateAd.isPending) {
+      return
+    }
+
+    resetEditAdForm()
+  }
+
+  function validateEditAdForm() {
+    const nextErrors: EditAdFormErrors = {}
+
+    if (!editAdFormValues) {
+      return false
+    }
+
+    const advertiserName = editAdFormValues.advertiserName.trim()
+    const title = editAdFormValues.title.trim()
+    const imageUrl = editAdFormValues.imageUrl.trim()
+    const linkUrl = editAdFormValues.linkUrl.trim()
+    const price = Number(editAdFormValues.price)
+
+    if (!editAdFormValues.adSlotId) {
+      nextErrors.adSlotId = '광고 슬롯을 선택해 주세요.'
+    }
+
+    if (!advertiserName) {
+      nextErrors.advertiserName = '광고주명을 입력해 주세요.'
+    }
+
+    if (!title) {
+      nextErrors.title = '광고 제목을 입력해 주세요.'
+    }
+
+    if (!imageUrl) {
+      nextErrors.imageUrl = '이미지 URL을 입력해 주세요.'
+    } else if (!isLikelyHttpUrl(imageUrl)) {
+      nextErrors.imageUrl = '올바른 이미지 URL을 입력해 주세요.'
+    }
+
+    if (linkUrl && !isLikelyHttpUrl(linkUrl)) {
+      nextErrors.linkUrl = '올바른 링크 URL을 입력해 주세요.'
+    }
+
+    if (!editAdFormValues.startAt) {
+      nextErrors.startAt = '집행 시작일을 선택해 주세요.'
+    }
+
+    if (!editAdFormValues.endAt) {
+      nextErrors.endAt = '집행 종료일을 선택해 주세요.'
+    } else if (editAdFormValues.startAt && editAdFormValues.endAt < editAdFormValues.startAt) {
+      nextErrors.endAt = '집행 종료일은 시작일 이후여야 합니다.'
+    }
+
+    if (!editAdFormValues.price.trim()) {
+      nextErrors.price = '판매가를 입력해 주세요.'
+    } else if (Number.isNaN(price) || price < 0) {
+      nextErrors.price = '판매가는 0 이상의 숫자여야 합니다.'
+    }
+
+    if (!['DRAFT', 'ACTIVE', 'PAUSED', 'EXPIRED'].includes(editAdFormValues.status)) {
+      nextErrors.status = '상태는 DRAFT, ACTIVE, PAUSED, EXPIRED만 선택할 수 있습니다.'
+    }
+
+    setEditAdFormErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
+  function handleSubmitEditAdForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!editingAd || !editAdFormValues || !validateEditAdForm()) {
+      return
+    }
+
+    updateAd.mutate(
+      {
+        adId: editingAd.id,
+        input: {
+          adSlotId: Number(editAdFormValues.adSlotId),
+          advertiserName: editAdFormValues.advertiserName.trim(),
+          title: editAdFormValues.title.trim(),
+          imageUrl: editAdFormValues.imageUrl.trim(),
+          linkUrl: editAdFormValues.linkUrl.trim() || undefined,
+          startAt: editAdFormValues.startAt,
+          endAt: editAdFormValues.endAt,
+          price: Number(editAdFormValues.price),
+          status: editAdFormValues.status,
+        },
+      },
+      {
+        onSuccess: () => {
+          resetEditAdForm()
         },
       },
     )
@@ -525,7 +682,14 @@ export default function PlatformAdsPage() {
             >
               {action.label}
             </button>
-            <DisabledActionButton>상세</DisabledActionButton>
+            <button
+              type="button"
+              disabled={updateAd.isPending}
+              onClick={() => handleOpenEditAdForm(ad)}
+              className="px-2.5 py-1.5 text-xs font-bold text-primary ring-1 ring-line transition-colors hover:text-primary-hover hover:ring-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              상세
+            </button>
           </div>
         )
       },
@@ -746,6 +910,198 @@ export default function PlatformAdsPage() {
               className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
             >
               {createAd.isPending ? '등록 중...' : '등록'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {isEditAdFormOpen && editingAd && editAdFormValues && (
+        <form ref={editAdFormRef} onSubmit={handleSubmitEditAdForm} className="border border-line bg-surface p-5">
+          <div className="mb-5">
+            <h2 className="text-lg font-extrabold text-ink">광고 상세/수정</h2>
+            <p className="mt-1 text-sm text-muted">등록된 광고 캠페인의 슬롯, 기간, 가격, 상태를 수정합니다.</p>
+          </div>
+
+          <div className="mb-4 grid gap-3 md:grid-cols-2">
+            <div className="border border-line bg-white p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary">성과 지표</p>
+              <p className="mt-2 text-sm font-semibold text-ink">
+                노출 {editingAd.impressions.toLocaleString()}회 · 클릭 {editingAd.clicks.toLocaleString()}회
+              </p>
+              <p className="mt-1 text-xs text-muted">노출과 클릭은 수정할 수 없습니다.</p>
+            </div>
+            <div className="border border-line bg-white p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary">광고 ID</p>
+              <p className="mt-2 text-sm font-semibold text-ink">#{editingAd.id}</p>
+              <p className="mt-1 text-xs text-muted">광고 식별자는 수정할 수 없습니다.</p>
+            </div>
+          </div>
+
+          {updateAd.isError && (
+            <div className="mb-4 border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-semibold text-danger">
+              광고 수정에 실패했습니다.
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <Field
+              label="광고 슬롯"
+              id="platform-edit-ad-slot"
+              required
+              error={editAdFormErrors.adSlotId}
+              hint={editableAdSlots.length === 0 ? '선택 가능한 슬롯이 없습니다.' : undefined}
+            >
+              <select
+                id="platform-edit-ad-slot"
+                value={editAdFormValues.adSlotId}
+                onChange={(event) => {
+                  setEditAdFormValues((prev) => (prev ? { ...prev, adSlotId: event.target.value } : prev))
+                  setEditAdFormErrors((prev) => ({ ...prev, adSlotId: undefined }))
+                }}
+                disabled={updateAd.isPending || adSlotsQuery.isLoading || editableAdSlots.length === 0}
+                className={[fieldControlClass, editAdFormErrors.adSlotId ? fieldControlErrorClass : ''].join(' ')}
+              >
+                <option value="">광고 슬롯 선택</option>
+                {editableAdSlots.map((slot) => (
+                  <option key={slot.id} value={slot.id}>
+                    {slot.placement} · {getSlotScope(slot, exhibitionTitles)} · {slot.status}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="광고주명" id="platform-edit-ad-advertiser" required error={editAdFormErrors.advertiserName}>
+              <input
+                id="platform-edit-ad-advertiser"
+                value={editAdFormValues.advertiserName}
+                onChange={(event) => {
+                  setEditAdFormValues((prev) => (prev ? { ...prev, advertiserName: event.target.value } : prev))
+                  setEditAdFormErrors((prev) => ({ ...prev, advertiserName: undefined }))
+                }}
+                disabled={updateAd.isPending}
+                className={[fieldControlClass, editAdFormErrors.advertiserName ? fieldControlErrorClass : ''].join(' ')}
+              />
+            </Field>
+
+            <Field label="광고 제목" id="platform-edit-ad-title" required error={editAdFormErrors.title}>
+              <input
+                id="platform-edit-ad-title"
+                value={editAdFormValues.title}
+                onChange={(event) => {
+                  setEditAdFormValues((prev) => (prev ? { ...prev, title: event.target.value } : prev))
+                  setEditAdFormErrors((prev) => ({ ...prev, title: undefined }))
+                }}
+                disabled={updateAd.isPending}
+                className={[fieldControlClass, editAdFormErrors.title ? fieldControlErrorClass : ''].join(' ')}
+              />
+            </Field>
+
+            <Field label="이미지 URL" id="platform-edit-ad-image-url" required error={editAdFormErrors.imageUrl}>
+              <input
+                id="platform-edit-ad-image-url"
+                value={editAdFormValues.imageUrl}
+                onChange={(event) => {
+                  setEditAdFormValues((prev) => (prev ? { ...prev, imageUrl: event.target.value } : prev))
+                  setEditAdFormErrors((prev) => ({ ...prev, imageUrl: undefined }))
+                }}
+                disabled={updateAd.isPending}
+                placeholder="https://example.com/banner.png"
+                className={[fieldControlClass, editAdFormErrors.imageUrl ? fieldControlErrorClass : ''].join(' ')}
+              />
+            </Field>
+
+            <Field label="링크 URL" id="platform-edit-ad-link-url" error={editAdFormErrors.linkUrl} hint="선택 입력">
+              <input
+                id="platform-edit-ad-link-url"
+                value={editAdFormValues.linkUrl}
+                onChange={(event) => {
+                  setEditAdFormValues((prev) => (prev ? { ...prev, linkUrl: event.target.value } : prev))
+                  setEditAdFormErrors((prev) => ({ ...prev, linkUrl: undefined }))
+                }}
+                disabled={updateAd.isPending}
+                placeholder="https://example.com"
+                className={[fieldControlClass, editAdFormErrors.linkUrl ? fieldControlErrorClass : ''].join(' ')}
+              />
+            </Field>
+
+            <Field label="집행 시작일" id="platform-edit-ad-start-at" required error={editAdFormErrors.startAt}>
+              <input
+                id="platform-edit-ad-start-at"
+                type="datetime-local"
+                value={editAdFormValues.startAt}
+                onChange={(event) => {
+                  setEditAdFormValues((prev) => (prev ? { ...prev, startAt: event.target.value } : prev))
+                  setEditAdFormErrors((prev) => ({ ...prev, startAt: undefined }))
+                }}
+                disabled={updateAd.isPending}
+                className={[fieldControlClass, editAdFormErrors.startAt ? fieldControlErrorClass : ''].join(' ')}
+              />
+            </Field>
+
+            <Field label="집행 종료일" id="platform-edit-ad-end-at" required error={editAdFormErrors.endAt}>
+              <input
+                id="platform-edit-ad-end-at"
+                type="datetime-local"
+                value={editAdFormValues.endAt}
+                onChange={(event) => {
+                  setEditAdFormValues((prev) => (prev ? { ...prev, endAt: event.target.value } : prev))
+                  setEditAdFormErrors((prev) => ({ ...prev, endAt: undefined }))
+                }}
+                disabled={updateAd.isPending}
+                className={[fieldControlClass, editAdFormErrors.endAt ? fieldControlErrorClass : ''].join(' ')}
+              />
+            </Field>
+
+            <Field label="판매가" id="platform-edit-ad-price" required error={editAdFormErrors.price}>
+              <input
+                id="platform-edit-ad-price"
+                type="number"
+                min="0"
+                step="1"
+                value={editAdFormValues.price}
+                onChange={(event) => {
+                  setEditAdFormValues((prev) => (prev ? { ...prev, price: event.target.value } : prev))
+                  setEditAdFormErrors((prev) => ({ ...prev, price: undefined }))
+                }}
+                disabled={updateAd.isPending}
+                className={[fieldControlClass, editAdFormErrors.price ? fieldControlErrorClass : ''].join(' ')}
+              />
+            </Field>
+
+            <Field label="상태" id="platform-edit-ad-status" required error={editAdFormErrors.status}>
+              <select
+                id="platform-edit-ad-status"
+                value={editAdFormValues.status}
+                onChange={(event) => {
+                  setEditAdFormValues((prev) => (prev ? { ...prev, status: event.target.value as AdvertisementStatus } : prev))
+                  setEditAdFormErrors((prev) => ({ ...prev, status: undefined }))
+                }}
+                disabled={updateAd.isPending}
+                className={[fieldControlClass, editAdFormErrors.status ? fieldControlErrorClass : ''].join(' ')}
+              >
+                <option value="DRAFT">DRAFT</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="PAUSED">PAUSED</option>
+                <option value="EXPIRED">EXPIRED</option>
+              </select>
+            </Field>
+          </div>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={updateAd.isPending}
+              onClick={handleCancelEditAdForm}
+              className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-white hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={updateAd.isPending}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {updateAd.isPending ? '저장 중...' : '저장'}
             </button>
           </div>
         </form>
