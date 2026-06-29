@@ -1,6 +1,28 @@
+import { useState, type FormEvent } from 'react'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
+import { Field, fieldControlClass, fieldControlErrorClass } from '../../components/Field'
 import type { PlatformAdminSummary } from '../../features/platform/api'
-import { usePlatformAdmins, usePlatformExhibitions } from '../../features/platform/hooks'
+import { useCreatePlatformAdmin, usePlatformAdmins, usePlatformExhibitions } from '../../features/platform/hooks'
+
+interface AdminFormValues {
+  name: string
+  email: string
+  phone: string
+  exhibitionId: string
+}
+
+type AdminFormErrors = Partial<Record<keyof Pick<AdminFormValues, 'name' | 'email' | 'exhibitionId'>, string>>
+
+const INITIAL_FORM_VALUES: AdminFormValues = {
+  name: '',
+  email: '',
+  phone: '',
+  exhibitionId: '',
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
 
 function formatAssignedExhibitions(admin: PlatformAdminSummary, exhibitionTitles: Map<number, string>) {
   if (admin.assignedExhibitionIds.length === 0) {
@@ -15,14 +37,85 @@ function formatAssignedExhibitions(admin: PlatformAdminSummary, exhibitionTitles
 export default function PlatformAdminsPage() {
   const adminsQuery = usePlatformAdmins()
   const exhibitionsQuery = usePlatformExhibitions()
+  const createAdmin = useCreatePlatformAdmin()
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [formValues, setFormValues] = useState<AdminFormValues>(INITIAL_FORM_VALUES)
+  const [formErrors, setFormErrors] = useState<AdminFormErrors>({})
 
   const admins = (adminsQuery.data ?? []).filter((admin) => admin.role === 'EXPO_ADMIN')
+  const exhibitions = exhibitionsQuery.data ?? []
   const exhibitionTitles = new Map(
-    (exhibitionsQuery.data ?? []).map((exhibition) => [exhibition.id, exhibition.title]),
+    exhibitions.map((exhibition) => [exhibition.id, exhibition.title]),
   )
 
   const assignedCount = admins.filter((admin) => admin.assignedExhibitionIds.length > 0).length
   const unassignedCount = admins.length - assignedCount
+
+  function resetCreateForm() {
+    setFormValues(INITIAL_FORM_VALUES)
+    setFormErrors({})
+    createAdmin.reset()
+  }
+
+  function handleOpenCreateForm() {
+    resetCreateForm()
+    setIsFormOpen(true)
+  }
+
+  function handleCancelCreateForm() {
+    if (createAdmin.isPending) {
+      return
+    }
+
+    resetCreateForm()
+    setIsFormOpen(false)
+  }
+
+  function validateCreateForm() {
+    const errors: AdminFormErrors = {}
+    const name = formValues.name.trim()
+    const email = formValues.email.trim()
+
+    if (!name) {
+      errors.name = '이름을 입력해 주세요.'
+    }
+
+    if (!email) {
+      errors.email = '이메일을 입력해 주세요.'
+    } else if (!isValidEmail(email)) {
+      errors.email = '올바른 이메일 형식으로 입력해 주세요.'
+    }
+
+    if (!formValues.exhibitionId) {
+      errors.exhibitionId = '담당 행사를 선택해 주세요.'
+    }
+
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  function handleSubmitCreateForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!validateCreateForm()) {
+      return
+    }
+
+    createAdmin.mutate(
+      {
+        name: formValues.name.trim(),
+        email: formValues.email.trim(),
+        phone: formValues.phone.trim() || null,
+        exhibitionId: Number(formValues.exhibitionId),
+      },
+      {
+        onSuccess: () => {
+          resetCreateForm()
+          setIsFormOpen(false)
+        },
+      },
+    )
+  }
 
   const columns: DataTableColumn<PlatformAdminSummary>[] = [
     {
@@ -91,14 +184,113 @@ export default function PlatformAdminsPage() {
         <div className="flex flex-col items-start gap-2 md:items-end">
           <button
             type="button"
-            disabled
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground opacity-60"
+            onClick={handleOpenCreateForm}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             관리자 발급
           </button>
-          <p className="text-xs text-muted">다음 PR에서 구현 예정</p>
         </div>
       </div>
+
+      {isFormOpen && (
+        <form onSubmit={handleSubmitCreateForm} className="border border-line bg-surface p-5">
+          <div className="mb-5">
+            <h2 className="text-lg font-extrabold text-ink">EXPO_ADMIN 발급</h2>
+            <p className="mt-1 text-sm text-muted">
+              행사 운영 관리자가 사용할 계정을 생성하고 담당 행사를 배정합니다.
+            </p>
+          </div>
+
+          {createAdmin.isError && (
+            <div className="mb-4 border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-semibold text-danger">
+              관리자 발급에 실패했습니다.
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <Field label="이름" id="platform-admin-name" required error={formErrors.name}>
+              <input
+                id="platform-admin-name"
+                value={formValues.name}
+                onChange={(event) => {
+                  setFormValues((prev) => ({ ...prev, name: event.target.value }))
+                  setFormErrors((prev) => ({ ...prev, name: undefined }))
+                }}
+                disabled={createAdmin.isPending}
+                className={[fieldControlClass, formErrors.name ? fieldControlErrorClass : ''].join(' ')}
+              />
+            </Field>
+
+            <Field label="이메일" id="platform-admin-email" required error={formErrors.email}>
+              <input
+                id="platform-admin-email"
+                type="email"
+                value={formValues.email}
+                onChange={(event) => {
+                  setFormValues((prev) => ({ ...prev, email: event.target.value }))
+                  setFormErrors((prev) => ({ ...prev, email: undefined }))
+                }}
+                disabled={createAdmin.isPending}
+                className={[fieldControlClass, formErrors.email ? fieldControlErrorClass : ''].join(' ')}
+              />
+            </Field>
+
+            <Field label="연락처" id="platform-admin-phone" hint="선택 입력">
+              <input
+                id="platform-admin-phone"
+                value={formValues.phone}
+                onChange={(event) => setFormValues((prev) => ({ ...prev, phone: event.target.value }))}
+                disabled={createAdmin.isPending}
+                className={fieldControlClass}
+              />
+            </Field>
+
+            <Field
+              label="담당 행사"
+              id="platform-admin-exhibition"
+              required
+              error={formErrors.exhibitionId}
+              hint={exhibitionsQuery.isError ? '행사 목록을 불러오지 못했습니다.' : undefined}
+            >
+              <select
+                id="platform-admin-exhibition"
+                value={formValues.exhibitionId}
+                onChange={(event) => {
+                  setFormValues((prev) => ({ ...prev, exhibitionId: event.target.value }))
+                  setFormErrors((prev) => ({ ...prev, exhibitionId: undefined }))
+                }}
+                disabled={createAdmin.isPending || exhibitionsQuery.isLoading || exhibitionsQuery.isError}
+                className={[fieldControlClass, formErrors.exhibitionId ? fieldControlErrorClass : ''].join(' ')}
+              >
+                <option value="">담당 행사 선택</option>
+                {exhibitions.map((exhibition) => (
+                  <option key={exhibition.id} value={exhibition.id}>
+                    {exhibition.title} ({exhibition.status})
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={createAdmin.isPending}
+              onClick={handleCancelCreateForm}
+              className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-white hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={createAdmin.isPending || exhibitionsQuery.isLoading || exhibitionsQuery.isError}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {createAdmin.isPending ? '발급 중...' : '발급'}
+            </button>
+          </div>
+        </form>
+      )}
 
       <div className="grid gap-3 md:grid-cols-3">
         <section className="rounded-lg border border-line bg-surface p-4">
