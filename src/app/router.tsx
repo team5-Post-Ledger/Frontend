@@ -65,13 +65,15 @@ import { RequireCurrentExhibition } from './guards/RequireCurrentExhibition'
 import { RequireStaffExhibition } from './guards/RequireStaffExhibition'
 import { AdminLayout } from './layouts/AdminLayout'
 import { AuthLayout } from './layouts/AuthLayout'
-import { MobileLayout } from './layouts/MobileLayout'
 import { PlatformLayout } from './layouts/PlatformLayout'
 import { ScannerLayout } from './layouts/ScannerLayout'
+import { ExhibitorLayout } from './layouts/ExhibitorLayout'
 import { StaffLayout } from './layouts/StaffLayout'
 import { VisitorLayout } from './layouts/VisitorLayout'
 import ScannerSelectPage from '../pages/exhibitor/ScannerSelectPage'
 import ScannerPage from '../pages/exhibitor/ScannerPage'
+import ExhibitorStatsPage from '../pages/exhibitor/ExhibitorStatsPage'
+import ExhibitorBoothDetailPage from '../pages/exhibitor/ExhibitorBoothDetailPage'
 
 function Stub({ label }: { label: string }) {
   return <p className="text-sm text-muted">{label}</p>
@@ -81,8 +83,7 @@ function Stub({ label }: { label: string }) {
 function EducationShell() {
   const role = useAuthStore((s) => s.user?.role)
   if (role === 'STAFF') return <StaffLayout />
-  // TODO: ExhibitorLayout 도입 시 MobileLayout → ExhibitorLayout으로 교체
-  if (role === 'EXHIBITOR') return <MobileLayout />
+  if (role === 'EXHIBITOR') return <ExhibitorLayout />
   return <Navigate to="/403" replace />
 }
 
@@ -206,10 +207,11 @@ export function AppRouter() {
         <Route path="scanner/:scanPointId" element={<ScannerPage />} />
       </Route>
 
-      {/* EXHIBITOR 리포트·기타 (PR2 ExhibitorLayout 연결 전 임시 stub) */}
-      <Route element={<MobileLayout />}>
+      {/* EXHIBITOR 리포트 — ExhibitorLayout 위에서 역할 보호 */}
+      <Route element={<ExhibitorLayout />}>
         <Route element={<ProtectedRoute roles={['EXHIBITOR']} />}>
-          <Route path="exhibitor/*" element={<Stub label="참가기업 리포트" />} />
+          <Route path="exhibitor/stats" element={<ExhibitorStatsPage />} />
+          <Route path="exhibitor/stats/booths/:boothId" element={<ExhibitorBoothDetailPage />} />
         </Route>
       </Route>
 

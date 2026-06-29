@@ -8,7 +8,7 @@ const ROLE_HOME: Record<Role, string> = {
   PLATFORM_ADMIN: '/platform/exhibitions',
   ACCOUNTANT: '/settlements',
   STAFF: '/checkin',
-  EXHIBITOR: '/scanner',
+  EXHIBITOR: '/exhibitor/stats',
 }
 
 export function usePostAuthRedirect(role: Role | null, delayMs = 700) {
