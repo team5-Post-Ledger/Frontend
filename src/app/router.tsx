@@ -63,6 +63,7 @@ import ProgressPage from '../pages/staff/ProgressPage'
 import { ProtectedRoute } from './guards/ProtectedRoute'
 import { RequireCurrentExhibition } from './guards/RequireCurrentExhibition'
 import { RequireStaffExhibition } from './guards/RequireStaffExhibition'
+import { AccountantLayout } from './layouts/AccountantLayout'
 import { AdminLayout } from './layouts/AdminLayout'
 import { AuthLayout } from './layouts/AuthLayout'
 import { PlatformLayout } from './layouts/PlatformLayout'
@@ -74,6 +75,7 @@ import ScannerSelectPage from '../pages/exhibitor/ScannerSelectPage'
 import ScannerPage from '../pages/exhibitor/ScannerPage'
 import ExhibitorStatsPage from '../pages/exhibitor/ExhibitorStatsPage'
 import ExhibitorBoothDetailPage from '../pages/exhibitor/ExhibitorBoothDetailPage'
+import SettlementsPage from '../pages/accountant/SettlementsPage'
 
 function Stub({ label }: { label: string }) {
   return <p className="text-sm text-muted">{label}</p>
@@ -159,8 +161,12 @@ export function AppRouter() {
 
           <Route path="admin/*" element={<Stub label="이 화면은 아직 준비 중입니다" />} />
         </Route>
+      </Route>
+
+      {/* ACCOUNTANT 정산 — AccountantLayout (sidebar md+, mobile top header) */}
+      <Route element={<AccountantLayout />}>
         <Route element={<ProtectedRoute roles={['ACCOUNTANT']} />}>
-          <Route path="settlements/*" element={<Stub label="정산" />} />
+          <Route path="settlements" element={<SettlementsPage />} />
         </Route>
       </Route>
 
