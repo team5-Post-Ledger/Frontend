@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
+import { Field, fieldControlClass, fieldControlErrorClass } from '../../components/Field'
 import {
+  useCreatePlatformExhibition,
   useDeletePlatformExhibition,
   usePlatformExhibitions,
   useUpdatePlatformExhibitionStatus,
@@ -23,6 +25,28 @@ type PendingAction =
   | { type: 'close'; id: number; targetStatus: ExhibitionStatus }
   | { type: 'delete'; id: number }
 
+interface ExhibitionFormValues {
+  title: string
+  slug: string
+  venue: string
+  address: string
+  startDate: string
+  endDate: string
+}
+
+type ExhibitionFormErrors = Partial<Record<keyof ExhibitionFormValues, string>>
+
+const INITIAL_EXHIBITION_FORM_VALUES: ExhibitionFormValues = {
+  title: '',
+  slug: '',
+  venue: '',
+  address: '',
+  startDate: '',
+  endDate: '',
+}
+
+const isValidSlug = (slug: string) => /^[a-z0-9-]+$/.test(slug)
+
 function StatusBadge({ status }: { status: ExhibitionStatus }) {
   const badge = STATUS_BADGE[status]
   return <span className={`inline-flex px-2.5 py-1 text-xs font-bold ${badge.className}`}>{badge.label}</span>
@@ -30,10 +54,95 @@ function StatusBadge({ status }: { status: ExhibitionStatus }) {
 
 export default function PlatformExhibitionsPage() {
   const exhibitions = usePlatformExhibitions()
+  const createExhibition = useCreatePlatformExhibition()
   const updateStatus = useUpdatePlatformExhibitionStatus()
   const deleteExhibition = useDeletePlatformExhibition()
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [formValues, setFormValues] = useState<ExhibitionFormValues>(INITIAL_EXHIBITION_FORM_VALUES)
+  const [formErrors, setFormErrors] = useState<ExhibitionFormErrors>({})
   const data = exhibitions.data ?? []
+
+  function resetCreateForm() {
+    setFormValues(INITIAL_EXHIBITION_FORM_VALUES)
+    setFormErrors({})
+    createExhibition.reset()
+  }
+
+  function handleOpenCreateForm() {
+    createExhibition.reset()
+    setFormErrors({})
+    setIsFormOpen(true)
+  }
+
+  function handleCancelCreateForm() {
+    if (createExhibition.isPending) {
+      return
+    }
+
+    resetCreateForm()
+    setIsFormOpen(false)
+  }
+
+  function validateCreateForm() {
+    const nextErrors: ExhibitionFormErrors = {}
+    const title = formValues.title.trim()
+    const slug = formValues.slug.trim()
+    const venue = formValues.venue.trim()
+
+    if (!title) {
+      nextErrors.title = '행사명을 입력해 주세요.'
+    }
+
+    if (!slug) {
+      nextErrors.slug = 'slug를 입력해 주세요.'
+    } else if (!isValidSlug(slug)) {
+      nextErrors.slug = 'slug는 영문 소문자, 숫자, 하이픈만 사용할 수 있습니다.'
+    }
+
+    if (!venue) {
+      nextErrors.venue = '장소명을 입력해 주세요.'
+    }
+
+    if (!formValues.startDate) {
+      nextErrors.startDate = '시작일을 선택해 주세요.'
+    }
+
+    if (!formValues.endDate) {
+      nextErrors.endDate = '종료일을 선택해 주세요.'
+    } else if (formValues.startDate && formValues.endDate < formValues.startDate) {
+      nextErrors.endDate = '종료일은 시작일 이후여야 합니다.'
+    }
+
+    setFormErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
+  function handleSubmitCreateForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!validateCreateForm()) {
+      return
+    }
+
+    createExhibition.mutate(
+      {
+        title: formValues.title.trim(),
+        slug: formValues.slug.trim(),
+        venue: formValues.venue.trim(),
+        address: formValues.address.trim(),
+        startDate: formValues.startDate,
+        endDate: formValues.endDate,
+        status: 'DRAFT',
+      },
+      {
+        onSuccess: () => {
+          resetCreateForm()
+          setIsFormOpen(false)
+        },
+      },
+    )
+  }
 
   function handleStatusChange(id: number, status: ExhibitionStatus) {
     if (status === 'CLOSED') {
@@ -199,14 +308,115 @@ export default function PlatformExhibitionsPage() {
         <div className="flex flex-col items-start gap-2 lg:items-end">
           <button
             type="button"
-            disabled
-            className="bg-primary px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-55"
+            onClick={handleOpenCreateForm}
+            disabled={createExhibition.isPending}
+            className="bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
           >
             행사 생성
           </button>
-          <p className="text-xs text-muted">다음 PR에서 구현 예정</p>
         </div>
       </div>
+
+      {isFormOpen ? (
+        <form onSubmit={handleSubmitCreateForm} className="space-y-4 border border-line bg-white p-5">
+          <div>
+            <h2 className="text-base font-bold text-ink">행사 생성</h2>
+            <p className="mt-1 text-sm text-muted">플랫폼에서 운영할 신규 행사의 기본 정보를 등록합니다.</p>
+          </div>
+
+          {createExhibition.isError ? (
+            <div className="border border-danger/30 bg-danger/10 px-3 py-2 text-sm font-bold text-danger">
+              행사 생성에 실패했습니다.
+            </div>
+          ) : null}
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <Field id="exhibition-title" label="행사명" error={formErrors.title} required>
+              <input
+                id="exhibition-title"
+                value={formValues.title}
+                onChange={(event) => setFormValues((prev) => ({ ...prev, title: event.target.value }))}
+                className={`${fieldControlClass} ${formErrors.title ? fieldControlErrorClass : ''}`}
+                placeholder="예: 2026 푸드페어"
+                disabled={createExhibition.isPending}
+              />
+            </Field>
+
+            <Field id="exhibition-slug" label="slug" error={formErrors.slug} hint="영문 소문자, 숫자, 하이픈만 사용" required>
+              <input
+                id="exhibition-slug"
+                value={formValues.slug}
+                onChange={(event) => setFormValues((prev) => ({ ...prev, slug: event.target.value }))}
+                className={`${fieldControlClass} ${formErrors.slug ? fieldControlErrorClass : ''}`}
+                placeholder="food-fair-2026"
+                disabled={createExhibition.isPending}
+              />
+            </Field>
+
+            <Field id="exhibition-venue" label="장소명" error={formErrors.venue} required>
+              <input
+                id="exhibition-venue"
+                value={formValues.venue}
+                onChange={(event) => setFormValues((prev) => ({ ...prev, venue: event.target.value }))}
+                className={`${fieldControlClass} ${formErrors.venue ? fieldControlErrorClass : ''}`}
+                placeholder="예: 코엑스 A홀"
+                disabled={createExhibition.isPending}
+              />
+            </Field>
+
+            <Field id="exhibition-address" label="주소" error={formErrors.address} hint="선택 입력">
+              <input
+                id="exhibition-address"
+                value={formValues.address}
+                onChange={(event) => setFormValues((prev) => ({ ...prev, address: event.target.value }))}
+                className={`${fieldControlClass} ${formErrors.address ? fieldControlErrorClass : ''}`}
+                placeholder="예: 서울 강남구 영동대로 513"
+                disabled={createExhibition.isPending}
+              />
+            </Field>
+
+            <Field id="exhibition-start-date" label="시작일" error={formErrors.startDate} required>
+              <input
+                id="exhibition-start-date"
+                type="date"
+                value={formValues.startDate}
+                onChange={(event) => setFormValues((prev) => ({ ...prev, startDate: event.target.value }))}
+                className={`${fieldControlClass} ${formErrors.startDate ? fieldControlErrorClass : ''}`}
+                disabled={createExhibition.isPending}
+              />
+            </Field>
+
+            <Field id="exhibition-end-date" label="종료일" error={formErrors.endDate} required>
+              <input
+                id="exhibition-end-date"
+                type="date"
+                value={formValues.endDate}
+                onChange={(event) => setFormValues((prev) => ({ ...prev, endDate: event.target.value }))}
+                className={`${fieldControlClass} ${formErrors.endDate ? fieldControlErrorClass : ''}`}
+                disabled={createExhibition.isPending}
+              />
+            </Field>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleCancelCreateForm}
+              disabled={createExhibition.isPending}
+              className="border border-line bg-white px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={createExhibition.isPending}
+              className="bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {createExhibition.isPending ? '생성 중...' : '생성'}
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       {exhibitions.isError ? (
         <div className="flex min-h-60 items-center justify-center border border-line bg-white text-sm text-danger">

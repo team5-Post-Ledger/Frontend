@@ -2,7 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
 import { Field, fieldControlClass, fieldControlErrorClass } from '../../components/Field'
 import type { PlatformAdminSummary } from '../../features/platform/api'
-import { useCreatePlatformAdmin, usePlatformAdmins, usePlatformExhibitions } from '../../features/platform/hooks'
+import {
+  useAssignPlatformAdmin,
+  useCreatePlatformAdmin,
+  usePlatformAdmins,
+  usePlatformExhibitions,
+} from '../../features/platform/hooks'
 
 interface AdminFormValues {
   name: string
@@ -13,10 +18,20 @@ interface AdminFormValues {
 
 type AdminFormErrors = Partial<Record<keyof Pick<AdminFormValues, 'name' | 'email' | 'exhibitionId'>, string>>
 
+interface AssignmentFormValues {
+  exhibitionId: string
+}
+
+type AssignmentFormErrors = Partial<Record<keyof AssignmentFormValues, string>>
+
 const INITIAL_FORM_VALUES: AdminFormValues = {
   name: '',
   email: '',
   phone: '',
+  exhibitionId: '',
+}
+
+const INITIAL_ASSIGNMENT_FORM_VALUES: AssignmentFormValues = {
   exhibitionId: '',
 }
 
@@ -38,9 +53,13 @@ export default function PlatformAdminsPage() {
   const adminsQuery = usePlatformAdmins()
   const exhibitionsQuery = usePlatformExhibitions()
   const createAdmin = useCreatePlatformAdmin()
+  const assignAdmin = useAssignPlatformAdmin()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [formValues, setFormValues] = useState<AdminFormValues>(INITIAL_FORM_VALUES)
   const [formErrors, setFormErrors] = useState<AdminFormErrors>({})
+  const [selectedAdmin, setSelectedAdmin] = useState<PlatformAdminSummary | null>(null)
+  const [assignmentValues, setAssignmentValues] = useState<AssignmentFormValues>(INITIAL_ASSIGNMENT_FORM_VALUES)
+  const [assignmentErrors, setAssignmentErrors] = useState<AssignmentFormErrors>({})
 
   const admins = (adminsQuery.data ?? []).filter((admin) => admin.role === 'EXPO_ADMIN')
   const exhibitions = exhibitionsQuery.data ?? []
@@ -59,6 +78,8 @@ export default function PlatformAdminsPage() {
 
   function handleOpenCreateForm() {
     resetCreateForm()
+    resetAssignmentForm()
+    setSelectedAdmin(null)
     setIsFormOpen(true)
   }
 
@@ -117,6 +138,69 @@ export default function PlatformAdminsPage() {
     )
   }
 
+  function resetAssignmentForm() {
+    setAssignmentValues(INITIAL_ASSIGNMENT_FORM_VALUES)
+    setAssignmentErrors({})
+    assignAdmin.reset()
+  }
+
+  function handleOpenAssignmentForm(admin: PlatformAdminSummary) {
+    if (assignAdmin.isPending) {
+      return
+    }
+
+    resetCreateForm()
+    setIsFormOpen(false)
+    assignAdmin.reset()
+    setSelectedAdmin(admin)
+    setAssignmentValues(INITIAL_ASSIGNMENT_FORM_VALUES)
+    setAssignmentErrors({})
+  }
+
+  function handleCancelAssignmentForm() {
+    if (assignAdmin.isPending) {
+      return
+    }
+
+    resetAssignmentForm()
+    setSelectedAdmin(null)
+  }
+
+  function validateAssignmentForm() {
+    const errors: AssignmentFormErrors = {}
+    const exhibitionId = Number(assignmentValues.exhibitionId)
+
+    if (!assignmentValues.exhibitionId) {
+      errors.exhibitionId = '담당 행사를 선택해 주세요.'
+    } else if (selectedAdmin?.assignedExhibitionIds.includes(exhibitionId)) {
+      errors.exhibitionId = '이미 배정된 행사입니다.'
+    }
+
+    setAssignmentErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  function handleSubmitAssignmentForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!selectedAdmin || !validateAssignmentForm()) {
+      return
+    }
+
+    assignAdmin.mutate(
+      {
+        exhibitionId: Number(assignmentValues.exhibitionId),
+        userId: selectedAdmin.id,
+      },
+      {
+        onSuccess: () => {
+          resetAssignmentForm()
+          setSelectedAdmin(null)
+        },
+      },
+    )
+  }
+
   const columns: DataTableColumn<PlatformAdminSummary>[] = [
     {
       key: 'name',
@@ -159,12 +243,12 @@ export default function PlatformAdminsPage() {
     {
       key: 'actions',
       header: '관리',
-      render: () => (
+      render: (admin) => (
         <button
           type="button"
-          disabled
-          className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-muted"
-          title="EXPO_ADMIN 배정 관리는 다음 단계에서 구현됩니다."
+          disabled={assignAdmin.isPending}
+          onClick={() => handleOpenAssignmentForm(admin)}
+          className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:border-primary hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
         >
           배정 관리
         </button>
@@ -287,6 +371,88 @@ export default function PlatformAdminsPage() {
               className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
             >
               {createAdmin.isPending ? '발급 중...' : '발급'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {selectedAdmin && (
+        <form onSubmit={handleSubmitAssignmentForm} className="border border-line bg-surface p-5">
+          <div className="mb-5">
+            <h2 className="text-lg font-extrabold text-ink">담당 행사 배정</h2>
+            <p className="mt-1 text-sm text-muted">선택한 EXPO_ADMIN이 운영할 행사를 배정합니다.</p>
+          </div>
+
+          <div className="mb-5 border border-line bg-white p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">대상 관리자</p>
+            <div className="mt-2 text-sm font-semibold text-ink">{selectedAdmin.name}</div>
+            <div className="mt-1 text-xs text-muted">{selectedAdmin.email}</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedAdmin.assignedExhibitionIds.length > 0 ? (
+                selectedAdmin.assignedExhibitionIds.map((id) => (
+                  <span key={id} className="border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-ink">
+                    {exhibitionTitles.get(id) ?? `#${id}`}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs font-semibold text-muted">미배정</span>
+              )}
+            </div>
+          </div>
+
+          {assignAdmin.isError && (
+            <div className="mb-4 border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-semibold text-danger">
+              관리자 배정에 실패했습니다.
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field
+              label="담당 행사"
+              id="platform-admin-assignment-exhibition"
+              required
+              error={assignmentErrors.exhibitionId}
+              hint={exhibitionsQuery.isError ? '행사 목록을 불러오지 못했습니다.' : undefined}
+            >
+              <select
+                id="platform-admin-assignment-exhibition"
+                value={assignmentValues.exhibitionId}
+                onChange={(event) => {
+                  setAssignmentValues((prev) => ({ ...prev, exhibitionId: event.target.value }))
+                  setAssignmentErrors((prev) => ({ ...prev, exhibitionId: undefined }))
+                }}
+                disabled={assignAdmin.isPending || exhibitionsQuery.isLoading || exhibitionsQuery.isError}
+                className={[fieldControlClass, assignmentErrors.exhibitionId ? fieldControlErrorClass : ''].join(' ')}
+              >
+                <option value="">담당 행사 선택</option>
+                {exhibitions.map((exhibition) => {
+                  const isAssigned = selectedAdmin.assignedExhibitionIds.includes(exhibition.id)
+
+                  return (
+                    <option key={exhibition.id} value={exhibition.id} disabled={isAssigned}>
+                      {exhibition.title} ({exhibition.status}){isAssigned ? ' · 이미 배정됨' : ''}
+                    </option>
+                  )
+                })}
+              </select>
+            </Field>
+          </div>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={assignAdmin.isPending}
+              onClick={handleCancelAssignmentForm}
+              className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-white hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={assignAdmin.isPending || exhibitionsQuery.isLoading || exhibitionsQuery.isError}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {assignAdmin.isPending ? '배정 중...' : '배정'}
             </button>
           </div>
         </form>
