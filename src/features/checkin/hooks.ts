@@ -55,14 +55,23 @@ export function useBindNameTag(exhibitionId?: number | null) {
 }
 
 export function useCreateWalkInReservation() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ exhibitionId, input }: { exhibitionId: number; input: WalkInInput }) => createWalkInReservation(exhibitionId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reservations', 'list'] })
+    },
   })
 }
 
 export function useRecordOnsitePayment() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ reservationId, amount }: { reservationId: number; amount: number }) => recordOnsitePayment(reservationId, amount),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['reservations', 'list'] })
+      queryClient.invalidateQueries({ queryKey: ['checkin', 'status', variables.reservationId] })
+    },
   })
 }
 

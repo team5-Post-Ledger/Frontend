@@ -19,7 +19,7 @@ import type { EducationTargetRole } from '../../types'
 const LMS_KEYS = {
   completion: (id: number | null) => ['educationGuides', 'completion', id] as const,
   byRole: (role: EducationTargetRole | null) => ['educationGuides', 'byRole', role] as const,
-  progress: ['staffExhibitions', 'progress'] as const,
+  progress: (exhibitionId: number | null) => ['staffExhibitions', 'progress', exhibitionId] as const,
 } as const
 
 export function useEducationGuides() {
@@ -98,7 +98,7 @@ function useLmsInvalidate() {
   return (guideId: number, targetRole: EducationTargetRole) => {
     queryClient.invalidateQueries({ queryKey: LMS_KEYS.completion(guideId) })
     queryClient.invalidateQueries({ queryKey: LMS_KEYS.byRole(targetRole) })
-    queryClient.invalidateQueries({ queryKey: LMS_KEYS.progress })
+    queryClient.invalidateQueries({ queryKey: ['staffExhibitions', 'progress'] })
   }
 }
 

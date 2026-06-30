@@ -139,6 +139,8 @@ export default function CheckinHomePage() {
 
   // --- 행사 미선택 분기 ---
   if (exhibitionId === null) {
+    // 단일 행사 자동선택은 effect 기반 — 데이터 도착 후 effect가 도는 한 틱 동안 빈 출력을 방지
+    if (exhibitionsQuery.data?.length === 1) return null
     return (
       <QueryState
         isLoading={exhibitionsQuery.isLoading}
