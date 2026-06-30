@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { QueryState } from '../../components/QueryState'
 import { useScanPoints } from '../../features/scanner/hooks'
 import type { ScannerScanPointType } from '../../lib/api/scanner'
@@ -13,7 +13,15 @@ export default function ScannerSelectPage() {
 
   return (
     <div className="mx-auto max-w-lg px-6 py-8">
-      <h1 className="mb-1 text-xl font-extrabold tracking-tight text-ink">스캔 지점 선택</h1>
+      <div className="mb-1 flex items-baseline justify-between">
+        <h1 className="text-xl font-extrabold tracking-tight text-ink">스캔 지점 선택</h1>
+        <Link
+          to="/exhibitor/stats"
+          className="text-sm font-semibold text-muted transition-colors hover:text-primary"
+        >
+          리포트로 →
+        </Link>
+      </div>
       <p className="mb-6 text-sm text-muted">스캔을 시작할 부스 또는 세션을 선택하세요.</p>
 
       <QueryState

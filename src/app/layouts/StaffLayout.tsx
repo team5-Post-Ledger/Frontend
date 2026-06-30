@@ -156,6 +156,12 @@ export function StaffLayout() {
             >
               로그아웃
             </button>
+            <Link
+              to="/"
+              className="mt-1 flex w-full items-center gap-1 px-2 py-1 text-xs font-semibold text-white/40 transition-colors hover:text-white/70"
+            >
+              ← 메인 사이트
+            </Link>
           </div>
         </aside>
 
@@ -167,10 +173,16 @@ export function StaffLayout() {
             <div className="flex items-center gap-2">
               <span className="bg-primary px-2 py-0.5 text-[10px] font-bold text-white">STAFF</span>
               <span className="text-sm font-semibold text-white/80">{user?.name}</span>
+              <Link
+                to="/"
+                className="ml-1 px-2 py-1 text-sm font-semibold text-white/55 transition-colors hover:text-white"
+              >
+                메인
+              </Link>
               <button
                 type="button"
                 onClick={logout}
-                className="ml-1 px-2 py-1 text-sm font-semibold text-white/55 transition-colors hover:text-white"
+                className="px-2 py-1 text-sm font-semibold text-white/55 transition-colors hover:text-white"
               >
                 로그아웃
               </button>

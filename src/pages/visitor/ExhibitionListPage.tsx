@@ -36,8 +36,6 @@ export default function ExhibitionListPage() {
   const [searchParams] = useSearchParams()
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') ?? '')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
   const [page, setPage] = useState(1)
 
   const exhibitions = useExhibitions()
@@ -49,12 +47,9 @@ export default function ExhibitionListPage() {
     return data.filter((exhibition) => {
       if (term && !exhibition.title.toLowerCase().includes(term)) return false
       if (!matchesStatusFilter(exhibition, statusFilter)) return false
-      // 기간 필터: 선택한 기간과 박람회 일정(startDate~endDate)이 겹치는 경우만 노출.
-      if (dateFrom && exhibition.endDate < dateFrom) return false
-      if (dateTo && exhibition.startDate > dateTo) return false
       return true
     })
-  }, [exhibitions.data, searchTerm, statusFilter, dateFrom, dateTo])
+  }, [exhibitions.data, searchTerm, statusFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -67,16 +62,6 @@ export default function ExhibitionListPage() {
 
   function handleStatusChange(value: StatusFilter) {
     setStatusFilter(value)
-    setPage(1)
-  }
-
-  function handleDateFromChange(value: string) {
-    setDateFrom(value)
-    setPage(1)
-  }
-
-  function handleDateToChange(value: string) {
-    setDateTo(value)
     setPage(1)
   }
 
@@ -100,37 +85,17 @@ export default function ExhibitionListPage() {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <select
-            value={statusFilter}
-            onChange={(event) => handleStatusChange(event.target.value as StatusFilter)}
-            className="h-[42px] border border-line bg-white px-3 text-sm text-ink outline-none focus:border-primary"
-          >
-            {STATUS_FILTERS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <div className="flex items-center gap-1.5">
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => handleDateFromChange(event.target.value)}
-              aria-label="기간 시작"
-              className="h-[42px] border border-line bg-white px-2.5 text-sm text-ink outline-none focus:border-primary"
-            />
-            <span className="text-xs text-muted">~</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(event) => handleDateToChange(event.target.value)}
-              aria-label="기간 종료"
-              className="h-[42px] border border-line bg-white px-2.5 text-sm text-ink outline-none focus:border-primary"
-            />
-          </div>
-        </div>
+        <select
+          value={statusFilter}
+          onChange={(event) => handleStatusChange(event.target.value as StatusFilter)}
+          className="h-[42px] border border-line bg-white px-3 text-sm text-ink outline-none focus:border-primary"
+        >
+          {STATUS_FILTERS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <QueryState

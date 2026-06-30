@@ -50,6 +50,12 @@ export function ExhibitorLayout() {
 
             <div className="flex items-center gap-2 border-l border-white/10 pl-3">
               <span className="hidden text-sm text-white/80 sm:block">{user?.name}</span>
+              <Link
+                to="/"
+                className="text-sm font-semibold text-white/55 transition-colors hover:text-white"
+              >
+                메인 사이트
+              </Link>
               <button
                 type="button"
                 onClick={logout}

@@ -114,7 +114,7 @@ export default function ScannerPage() {
           >
             <polyline points="15 18 9 12 15 6" />
           </svg>
-          스캔 지점 선택
+          지점 변경
         </button>
 
         <span className="h-4 w-px bg-white/20" />

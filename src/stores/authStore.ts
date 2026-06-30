@@ -17,6 +17,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: initialSession.user,
   token: initialSession.token,
   login: (user, token) => {
+    // 이전 세션(토큰·user·역할 스코프 persist 키)을 완전히 제거한 뒤 새 세션을 기록한다.
+    clearSession()
+    useCurrentExhibitionStore.getState().setExhibitionId(null)
+    useStaffExhibitionStore.getState().setExhibitionId(null)
     persistSession(user, token)
     set({ user, token })
   },

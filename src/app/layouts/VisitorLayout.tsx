@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import { ROLE_HOME } from '../../hooks/usePostAuthRedirect'
 import { useAuthStore } from '../../stores/authStore'
 
 const NAV_LINKS = [
@@ -112,6 +113,14 @@ export function VisitorLayout() {
           {user ? (
             <>
               <span className="text-sm font-semibold text-ink">{user.name}님</span>
+              {user.role !== 'VISITOR' && (
+                <Link
+                  to={ROLE_HOME[user.role]}
+                  className="text-sm font-semibold text-primary transition-colors hover:text-primary-hover"
+                >
+                  내 콘솔로
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={logout}
@@ -135,7 +144,15 @@ export function VisitorLayout() {
           )}
         </div>
 
-        <div className="flex items-center lg:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
+          {user && user.role !== 'VISITOR' && (
+            <Link
+              to={ROLE_HOME[user.role]}
+              className="text-xs font-semibold text-primary"
+            >
+              콘솔
+            </Link>
+          )}
           {user ? (
             <span className="flex h-8 w-8 items-center justify-center bg-primary text-xs font-bold text-white">
               {user.name.slice(0, 1)}
