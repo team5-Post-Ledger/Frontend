@@ -24,7 +24,6 @@ import TicketTypesPage from '../pages/admin/TicketTypesPage'
 import TimeSlotsPage from '../pages/admin/TimeSlotsPage'
 import LoginPage from '../pages/auth/LoginPage'
 import SignupPage from '../pages/auth/SignupPage'
-import PrimitivesPreviewPage from '../pages/dev/PrimitivesPreviewPage'
 import PlatformAccountantsPage from '../pages/platform/PlatformAccountantsPage'
 import PlatformAdminsPage from '../pages/platform/PlatformAdminsPage'
 import PlatformAdsPage from '../pages/platform/PlatformAdsPage'
@@ -100,7 +99,6 @@ export function AppRouter() {
         <Route path="/signup" element={<SignupPage />} />
       </Route>
       <Route path="/403" element={<ForbiddenPage />} />
-      <Route path="/dev/primitives" element={<PrimitivesPreviewPage />} />
 
       <Route element={<VisitorLayout />}>
         <Route index element={<HomePage />} />
