@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
+import { ConsoleHomeLink } from '../../components/ConsoleHomeLink'
 import { useMyStaffExhibitions } from '../../features/staffExhibition/hooks'
 import { useAuthStore } from '../../stores/authStore'
 import { useStaffExhibitionStore } from '../../stores/staffExhibitionStore'
@@ -138,30 +139,8 @@ export function StaffLayout() {
             ))}
           </nav>
 
-          {/* 유저 정보 + 로그아웃 */}
           <div className="border-t border-white/10 p-4">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary text-xs font-bold text-white">
-                {user?.name?.slice(0, 1) ?? '?'}
-              </span>
-              <div className="min-w-0 leading-tight">
-                <div className="truncate text-sm font-semibold text-white">{user?.name}</div>
-                <div className="text-[11px] text-white/55">STAFF</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={logout}
-              className="mt-2 w-full px-2 py-1 text-xs font-semibold text-white/55 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              로그아웃
-            </button>
-            <Link
-              to="/"
-              className="mt-1 flex w-full items-center gap-1 px-2 py-1 text-xs font-semibold text-white/40 transition-colors hover:text-white/70"
-            >
-              ← 메인 사이트
-            </Link>
+            <ConsoleHomeLink />
           </div>
         </aside>
 
@@ -183,6 +162,26 @@ export function StaffLayout() {
                 type="button"
                 onClick={logout}
                 className="px-2 py-1 text-sm font-semibold text-white/55 transition-colors hover:text-white"
+              >
+                로그아웃
+              </button>
+            </div>
+          </header>
+
+          {/* md+ 전용 헤더 */}
+          <header className="sticky top-0 z-30 hidden h-14 items-center justify-end border-b border-line bg-white px-6 md:flex">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-primary text-xs font-bold text-white">
+                {user?.name?.slice(0, 1) ?? '?'}
+              </span>
+              <div className="leading-tight">
+                <div className="text-sm font-semibold text-ink">{user?.name}</div>
+                <div className="text-[11px] text-muted">STAFF</div>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="ml-1 px-2 py-1 text-sm font-semibold text-muted transition-colors hover:bg-surface hover:text-primary"
               >
                 로그아웃
               </button>

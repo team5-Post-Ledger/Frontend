@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router'
+import { ConsoleHomeLink } from '../../components/ConsoleHomeLink'
 import { useAuthStore } from '../../stores/authStore'
 
 interface NavItem {
@@ -68,12 +69,7 @@ export function PlatformLayout() {
         </nav>
 
         <div className="border-t border-white/10 p-4">
-          <Link
-            to="/"
-            className="mb-3 flex items-center gap-1 text-xs font-semibold text-white/45 transition-colors hover:text-white/80"
-          >
-            ← 메인 사이트
-          </Link>
+          <ConsoleHomeLink />
           <div className="bg-white/10 px-3 py-2">
             <div className="text-xs font-bold text-white">api-admin</div>
             <div className="mt-0.5 text-xs text-white/55">Platform administration</div>
