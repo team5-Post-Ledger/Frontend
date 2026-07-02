@@ -1,20 +1,10 @@
-import type { FormEvent, ReactNode } from 'react'
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { ExhibitionCard } from '../../components/ExhibitionCard'
-import { QueryState } from '../../components/QueryState'
+import type { ReactNode } from 'react'
+import { Link } from 'react-router'
+import { RecommendedBannerSlide } from '../../components/RecommendedBannerSlide'
+import { ScheduleSection } from '../../components/ScheduleSection'
+import { SearchCard } from '../../components/SearchCard'
 import { useActiveAds } from '../../features/ads/hooks'
-import { useRecommendedExhibitions } from '../../features/exhibition/hooks'
 import { useAuthStore } from '../../stores/authStore'
-
-function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <path d="M21 21l-4.3-4.3" />
-    </svg>
-  )
-}
 
 function CalendarIcon() {
   return (
@@ -87,19 +77,8 @@ const HOW_IT_WORKS = [
 ]
 
 export default function HomePage() {
-  const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
-  const [query, setQuery] = useState('')
-
-  const recommended = useRecommendedExhibitions()
   const ads = useActiveAds()
-  const homeRecommendedExhibitions = recommended.data?.slice(0, 6) ?? []
-
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const trimmed = query.trim()
-    navigate(trimmed ? `/exhibitions?q=${encodeURIComponent(trimmed)}` : '/exhibitions')
-  }
 
   return (
     <div className="flex flex-col">
@@ -116,25 +95,9 @@ export default function HomePage() {
           줄 설 필요 없이 QR 하나로 입장하고, 관심사에 맞는 동선까지 추천받으세요.
         </p>
 
-        <form onSubmit={handleSearch} className="mt-7 flex w-full max-w-[520px] flex-col gap-2.5 sm:flex-row lg:mt-8">
-          <div className="relative flex-1">
-            <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">
-              <SearchIcon />
-            </span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="박람회 이름, 장소로 검색"
-              className="h-12 w-full border border-line bg-white pl-10 pr-3.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <button
-            type="submit"
-            className="flex h-12 shrink-0 items-center justify-center bg-primary px-6 text-sm font-bold text-white transition-colors hover:bg-primary-hover"
-          >
-            검색
-          </button>
-        </form>
+        <div className="mt-7 w-full lg:mt-8">
+          <SearchCard />
+        </div>
 
         <Link to="/exhibitions" className="mt-3 text-xs font-semibold text-primary hover:text-primary-hover">
           박람회 전체보기 →
@@ -156,18 +119,18 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <QueryState
-            isLoading={recommended.isLoading}
-            isError={recommended.isError}
-            isEmpty={recommended.data?.length === 0}
-            emptyMessage="추천할 박람회가 아직 없습니다."
-          >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {homeRecommendedExhibitions.map((exhibition) => (
-                <ExhibitionCard key={exhibition.id} exhibition={exhibition} />
-              ))}
-            </div>
-          </QueryState>
+          <RecommendedBannerSlide />
+        </div>
+      </section>
+
+      <section className="border-t border-line px-5 py-10 lg:px-8 lg:py-16">
+        <div className="mx-auto max-w-[1080px]">
+          <div className="mb-6 lg:mb-8">
+            <div className="mb-2 font-mono text-[11px] uppercase tracking-[.14em] text-muted">일정 탐색</div>
+            <h2 className="text-xl font-extrabold tracking-tight text-ink lg:text-[28px]">날짜별로 진행 중인 박람회 찾기</h2>
+          </div>
+
+          <ScheduleSection />
         </div>
       </section>
 

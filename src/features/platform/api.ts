@@ -285,6 +285,7 @@ export async function createPlatformExhibition(input: CreatePlatformExhibitionIn
     enforceStaffQualification: input.enforceStaffQualification ?? false,
     createdBy: input.createdBy ?? 1,
     deletedAt: null,
+    bannerImageUrl: null,
   }
 
   platformExhibitions = [created, ...platformExhibitions]

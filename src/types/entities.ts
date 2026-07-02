@@ -44,6 +44,7 @@ export interface Exhibition {
   enforceStaffQualification: boolean
   createdBy: number
   deletedAt: string | null
+  bannerImageUrl: string | null
 }
 
 export interface ExhibitionAdmin {

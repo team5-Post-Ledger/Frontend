@@ -32,6 +32,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: true,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: 'https://picsum.photos/seed/smart-factory-2026/900/400',
   },
   {
     id: 2,
@@ -46,6 +47,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: false,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: 'https://picsum.photos/seed/eco-packaging-2026/900/400',
   },
   {
     id: 3,
@@ -60,6 +62,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: false,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: null,
   },
   {
     id: 4,
@@ -74,6 +77,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: false,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: 'https://picsum.photos/seed/game-contents-2026/900/400',
   },
   {
     id: 5,
@@ -88,6 +92,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: true,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: null,
   },
   {
     id: 6,
@@ -102,6 +107,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: false,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: 'https://picsum.photos/seed/global-education-2026/900/400',
   },
   {
     id: 7,
@@ -116,6 +122,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: false,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: null,
   },
   {
     id: 8,
@@ -130,6 +137,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: false,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: 'https://picsum.photos/seed/pet-industry-2026/900/400',
   },
   {
     id: 9,
@@ -144,6 +152,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: false,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: 'https://picsum.photos/seed/wedding-lifestyle-2026/900/400',
   },
   {
     id: 10,
@@ -158,6 +167,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: true,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: null,
   },
   {
     id: 11,
@@ -172,6 +182,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: false,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: 'https://picsum.photos/seed/kids-fair-2026/900/400',
   },
   {
     id: 12,
@@ -186,6 +197,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: false,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: null,
   },
   {
     id: 13,
@@ -200,6 +212,23 @@ export const platformExhibitionSeed: Exhibition[] = [
     enforceStaffQualification: true,
     createdBy: 1,
     deletedAt: null,
+    bannerImageUrl: 'https://picsum.photos/seed/smart-city-2027/900/400',
+  },
+  {
+    // 겹치는 날짜 시드: id 6(2026-11-05~07)과 11-06/11-07 이틀이 겹친다 — 달력 "외 N건" 케이스 검증용(spec.md §2.2).
+    id: 14,
+    title: '2026 서울 잡페어',
+    slug: 'job-fair-2026',
+    venue: '서울 aT센터',
+    address: '서울특별시 강남구 학동로 401',
+    floorMapMeta: null,
+    startDate: '2026-11-06',
+    endDate: '2026-11-08',
+    status: 'OPEN',
+    enforceStaffQualification: false,
+    createdBy: 1,
+    deletedAt: null,
+    bannerImageUrl: null,
   },
 ]
 
