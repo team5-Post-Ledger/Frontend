@@ -28,6 +28,8 @@ export interface User {
   name: string
   phone: string | null
   role: Role
+  // TODO(연동): 백엔드는 이 필드가 deletedAt(string|null)이 아니라 isDeleted(boolean)이다.
+  // /me 연동 시점에 User만 isDeleted로 바꾼다 — 다른 엔티티의 deletedAt은 이 결정과 무관, 그대로 둔다.
   deletedAt: string | null
 }
 

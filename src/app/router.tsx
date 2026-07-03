@@ -33,6 +33,7 @@ import PlatformStatsPage from '../pages/platform/PlatformStatsPage'
 import AssistantPage from '../pages/visitor/AssistantPage'
 import BoothDetailPage from '../pages/visitor/BoothDetailPage'
 import BoothListPage from '../pages/visitor/BoothListPage'
+import ExhibitionCongestionPage from '../pages/visitor/ExhibitionCongestionPage'
 import ExhibitionDetailPage from '../pages/visitor/ExhibitionDetailPage'
 import ExhibitionListPage from '../pages/visitor/ExhibitionListPage'
 import HomePage from '../pages/visitor/HomePage'
@@ -104,6 +105,7 @@ export function AppRouter() {
         <Route index element={<HomePage />} />
         <Route path="exhibitions" element={<ExhibitionListPage />} />
         <Route path="exhibitions/:id" element={<ExhibitionDetailPage />} />
+        <Route path="exhibitions/:id/congestion" element={<ExhibitionCongestionPage />} />
         <Route path="exhibitions/:id/booths" element={<BoothListPage />} />
         <Route path="exhibitions/:id/booths/:boothId" element={<BoothDetailPage />} />
 

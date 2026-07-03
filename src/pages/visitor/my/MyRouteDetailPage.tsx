@@ -1,14 +1,92 @@
 import { Link, useParams } from 'react-router'
 import { DetailLayout } from '../../../components/DetailLayout'
+import { FloorMap } from '../../../components/FloorMap'
 import { QueryState } from '../../../components/QueryState'
+import { getBoothFootprint } from '../../../features/booth/floorLayout'
+import { useBoothsByExhibition } from '../../../features/booth/hooks'
 import { useRecommendedRoute } from '../../../features/route/hooks'
 import type { RouteStopView } from '../../../lib/api/recommendedRoutes'
 import { formatDateTime } from '../../../lib/format'
+import type { Booth } from '../../../types'
 
 const ROUTE_STATUS_LABEL: Record<string, string> = {
   CREATED: '생성됨',
   EXPIRED: '만료됨',
   DELETED: '삭제됨',
+}
+
+interface RouteFloorSegment {
+  floor: number
+  stops: RouteStopView[]
+}
+
+// stop.boothId로 booth.floor를 조회해 연속된 같은 floor를 하나의 구간으로 묶는다.
+// floor를 못 찾으면(삭제된 booth 등) 그 stop은 지도에서만 생략한다(텍스트 리스트는 그대로 유지, spec.md §7-3).
+function splitByFloor(stops: RouteStopView[], boothFloorById: Map<number, number>): RouteFloorSegment[] {
+  const segments: RouteFloorSegment[] = []
+  for (const stop of stops) {
+    const floor = boothFloorById.get(stop.boothId)
+    if (floor === undefined) continue
+
+    const last = segments[segments.length - 1]
+    if (last && last.floor === floor) {
+      last.stops.push(stop)
+    } else {
+      segments.push({ floor, stops: [stop] })
+    }
+  }
+  return segments
+}
+
+function RouteFloorMapSection({ stops, booths }: { stops: RouteStopView[]; booths: Booth[] }) {
+  const boothFloorById = new Map(booths.map((booth) => [booth.id, booth.floor]))
+  const segments = splitByFloor(stops, boothFloorById)
+
+  if (segments.length === 0) return null
+
+  return (
+    <div>
+      <div className="mb-3 text-base font-bold text-ink">동선 지도</div>
+      <div className="flex flex-col gap-3">
+        {segments.map((segment, segmentIndex) => (
+          <div key={`${segment.floor}-${segmentIndex}`}>
+            {segmentIndex > 0 && (
+              <div className="mb-3 text-center text-xs font-semibold text-muted">
+                {segments[segmentIndex - 1].floor}층 → {segment.floor}층 이동
+              </div>
+            )}
+            <div className="border border-line bg-surface" style={{ aspectRatio: '4 / 3' }}>
+              <FloorMap
+                booths={segment.stops.flatMap((stop) => {
+                  // FloorMap에 넘기는 위치/크기는 stop.posX/posY가 아니라 authored footprint에서
+                  // 조회한다(spec.md §4.1) — stop.posX/posY는 아래 RouteStopRow의 "위치 (x, y)"
+                  // 텍스트 표시에는 그대로 쓰인다.
+                  const footprint = getBoothFootprint(stop.boothId)
+                  if (!footprint) return []
+                  return [{ boothId: stop.boothId, name: stop.boothName, ...footprint }]
+                })}
+                connections={segment.stops.slice(1).map((stop, i) => ({
+                  fromBoothId: segment.stops[i].boothId,
+                  toBoothId: stop.boothId,
+                }))}
+                renderBox={(boxBooth) => {
+                  const stop = segment.stops.find((s) => s.boothId === boxBooth.boothId)
+                  return (
+                    <span className="flex flex-col items-center gap-0.5">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                        {stop?.visitOrder}
+                      </span>
+                      {stop?.visitOrder === 1 && <span className="text-[10px] font-bold text-primary">출발</span>}
+                    </span>
+                  )
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function RouteStopRow({ stop, isLast }: { stop: RouteStopView; isLast: boolean }) {
@@ -38,6 +116,7 @@ export default function MyRouteDetailPage() {
   const parsedRouteId = routeId && /^\d+$/.test(routeId) ? Number(routeId) : null
 
   const route = useRecommendedRoute(parsedRouteId)
+  const booths = useBoothsByExhibition(route.data?.exhibitionId ?? null)
 
   if (parsedRouteId === null) {
     return <p className="p-6 text-sm text-danger">잘못된 동선 경로입니다.</p>
@@ -70,6 +149,8 @@ export default function MyRouteDetailPage() {
               <div className="text-sm font-bold">전체 추천 사유</div>
               <p className="mt-2 text-sm leading-relaxed text-white/80">{route.data.rationale}</p>
             </div>
+
+            {booths.data && <RouteFloorMapSection stops={route.data.stops} booths={booths.data} />}
 
             <div>
               <div className="mb-3 text-base font-bold text-ink">방문 순서 · {route.data.stops.length}곳</div>

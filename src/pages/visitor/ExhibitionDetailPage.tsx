@@ -125,7 +125,15 @@ export default function ExhibitionDetailPage() {
             ]}
           >
             <div className="border border-line bg-white p-4">
-              <div className="mb-1 text-xs text-muted">실시간 혼잡도</div>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-xs text-muted">실시간 혼잡도</span>
+                <Link
+                  to={`/exhibitions/${exhibitionId}/congestion`}
+                  className="text-xs font-semibold text-primary hover:text-primary-hover"
+                >
+                  지도로 보기 →
+                </Link>
+              </div>
               <QueryState isLoading={congestion.isLoading} isError={congestion.isError} height={56}>
                 {congestion.data && <CongestionGauge level={congestion.data.level} />}
               </QueryState>

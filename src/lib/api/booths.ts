@@ -114,7 +114,7 @@ let mockBooths: Booth[] = [
     name: '엣지센서랩 · 스마트팩토리 센서',
     description: '진동·온도 센서 기반 예지보전 데모.',
     tags: ['IoT', '예지보전'],
-    posX: 40,
+    posX: 72,
     posY: 20,
     floor: 2,
   },

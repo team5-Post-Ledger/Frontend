@@ -73,6 +73,20 @@ interface MockRouteRecord {
 // 타임라인의 혼잡도 칸(실제 값/null 혼재)을 둘 다 검증할 수 있게 한다.
 let mockRoutes: MockRouteRecord[] = [
   {
+    id: 71,
+    exhibitionId: 1,
+    rationale: 'AI·로보틱스·클라우드 관심사와 관련성이 높은 1층 부스 5곳을 동선이 겹치지 않는 순서로 배치했습니다.',
+    routeStatus: 'CREATED',
+    createdAt: '2026-06-24T10:00:00',
+    stops: [
+      { visitOrder: 1, boothId: 1, estMinutes: 18, reason: '필수 방문 부스이며 관심사(AI)와 직접 관련됩니다.', congestionSnapshot: 15 },
+      { visitOrder: 2, boothId: 2, estMinutes: 14, reason: '로보틱스 관심사와 유사도가 높고 1번 부스와 동선이 가깝습니다.', congestionSnapshot: 34 },
+      { visitOrder: 3, boothId: 8, estMinutes: 12, reason: '클라우드 멀티클라우드 존은 관심사와 관련도가 높습니다.', congestionSnapshot: 58 },
+      { visitOrder: 4, boothId: 3, estMinutes: 20, reason: '클라우드 인프라 관심사와 직접 관련되며 이동 거리가 짧습니다.', congestionSnapshot: null },
+      { visitOrder: 5, boothId: 7, estMinutes: 16, reason: '라이브 데모 시간에 맞춰 방문하면 대기시간이 짧습니다.', congestionSnapshot: 22 },
+    ],
+  },
+  {
     id: 79,
     exhibitionId: 3,
     rationale: '푸드테크·로봇조리·콜드체인 관심사와 관련성이 높은 부스를 우선 배치하고, 혼잡도가 낮은 순서로 정렬했습니다.',

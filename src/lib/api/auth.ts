@@ -39,6 +39,9 @@ const MOCK_ACCOUNTS: Array<{ email: string; password: string; user: User }> = [
   },
 ]
 
+// TODO(연동): 실제 POST /api/auth/login 응답은 { accessToken, refreshToken }뿐이고 user 정보가 없다.
+// role을 JWT payload 디코드로 얻을 수 있는지, 아니면 별도 프로필 조회가 필요한지 실측 후
+// 이 함수의 반환값 구성 방식을 다시 정한다 — 실제 연동 담당자가 확인.
 export async function login(email: string, password: string): Promise<LoginResult> {
   if (!password) {
     throw new Error('비밀번호를 입력해주세요.')
@@ -86,6 +89,9 @@ export async function signup(input: SignupInput): Promise<LoginResult> {
   }
 
   MOCK_ACCOUNTS.push({ email, password: input.password, user: newUser })
+  await mockDelay(null)
 
-  return mockDelay({ user: newUser, token: 'mock-jwt-token' })
+  // 실제 POST /api/auth/signup은 토큰을 내려주지 않는다(성공 시 data: null) — 가입 후
+  // 별도 로그인 호출로 세션을 받아오는 게 실제 계약이라 mock도 동일한 흐름으로 맞춘다.
+  return login(email, input.password)
 }
