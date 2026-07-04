@@ -1,33 +1,38 @@
 import { useMemo, useState } from 'react'
-import { buildMonthGrid, todayDateKey } from '../lib/calendarGrid'
-import { isExhibitionOnDate } from '../features/exhibition/dateRange'
-import { compareForCalendarList } from '../features/exhibition/sortForCalendar'
+import { buildCalendarWeekBands, type CalendarBarStatus, type CalendarWeekBands } from '../features/exhibition/calendarBands'
+import { buildMonthGrid, todayDateKey, type CalendarGridDay } from '../lib/calendarGrid'
 import type { Exhibition } from '../types'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+const NUMBER_ROW_HEIGHT = 32
+const LANE_ROW_HEIGHT = 15
 
-interface CalendarCellData {
-  date: string
-  inCurrentMonth: boolean
-  exhibitionsOnDate: Exhibition[]
-  primary: Exhibition | null
-  extraCount: number
+interface CalendarWeek {
+  days: CalendarGridDay[]
+  bands: CalendarWeekBands
 }
 
-function buildCalendarCells(year: number, month: number, exhibitions: Exhibition[]): CalendarCellData[] {
-  return buildMonthGrid(year, month).map((day) => {
-    const exhibitionsOnDate = exhibitions
-      .filter((exhibition) => isExhibitionOnDate(exhibition, day.date))
-      .sort(compareForCalendarList)
+function buildCalendarWeeks(year: number, month: number, exhibitions: Exhibition[], today: string): CalendarWeek[] {
+  const grid = buildMonthGrid(year, month)
+  const weeks: CalendarWeek[] = []
 
-    return {
-      date: day.date,
-      inCurrentMonth: day.inCurrentMonth,
-      exhibitionsOnDate,
-      primary: exhibitionsOnDate[0] ?? null,
-      extraCount: Math.max(0, exhibitionsOnDate.length - 1),
-    }
-  })
+  for (let i = 0; i < grid.length; i += 7) {
+    const days = grid.slice(i, i + 7)
+    const bands = buildCalendarWeekBands(
+      days.map((day) => day.date),
+      exhibitions,
+      today,
+    )
+    weeks.push({ days, bands })
+  }
+
+  return weeks
+}
+
+function barColorClassName(status: CalendarBarStatus): string {
+  if (status === 'ended') return 'bg-warning text-ink'
+  if (status === 'upcoming') return 'bg-primary text-white'
+  return 'bg-live text-ink'
 }
 
 export function MonthCalendar({
@@ -45,9 +50,9 @@ export function MonthCalendar({
     return { year: now.getFullYear(), month: now.getMonth() }
   })
 
-  const cells = useMemo(
-    () => buildCalendarCells(viewMonth.year, viewMonth.month, exhibitions),
-    [viewMonth, exhibitions],
+  const weeks = useMemo(
+    () => buildCalendarWeeks(viewMonth.year, viewMonth.month, exhibitions, today),
+    [viewMonth, exhibitions, today],
   )
 
   function goToPrevMonth() {
@@ -90,36 +95,62 @@ export function MonthCalendar({
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-y-1">
-        {cells.map((cell) => {
-          const isSelected = cell.date === selectedDate
-          const isToday = cell.date === today
+      <div className="flex flex-col gap-1">
+        {weeks.map(({ days, bands }) => {
+          const fixedRowHeights = [NUMBER_ROW_HEIGHT, ...Array(bands.lanesUsed).fill(LANE_ROW_HEIGHT)]
+          // 고정 행(숫자·막대) 다음에 남는 세로 공간은 유동 행이 흡수한다 — 겹침이 없는 주는
+          // min-h(원래 셀 높이)에 딱 맞고, 겹침이 있는 주만 고정 행 합만큼 자연스럽게 커진다.
+          const rowCount = fixedRowHeights.length + 1
 
           return (
-            <button
-              key={cell.date}
-              type="button"
-              onClick={() => onSelectDate(cell.date)}
-              className="flex min-h-[64px] flex-col items-start gap-0.5 p-1.5 text-left transition-colors hover:bg-surface active:bg-surface sm:min-h-[76px]"
+            <div
+              key={days[0].date}
+              className="grid grid-cols-7 min-h-[64px] sm:min-h-[76px]"
+              style={{ gridTemplateRows: `${fixedRowHeights.map((h) => `${h}px`).join(' ')} minmax(0, 1fr)` }}
             >
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-                  isSelected
-                    ? 'bg-primary font-bold text-white'
-                    : !cell.inCurrentMonth
-                      ? 'text-muted/50'
-                      : isToday
-                        ? 'font-bold text-primary'
-                        : 'text-ink'
-                }`}
-              >
-                {Number(cell.date.slice(-2))}
-              </span>
-              {cell.primary && (
-                <span className="w-full line-clamp-1 text-[11px] leading-tight text-ink">{cell.primary.title}</span>
-              )}
-              {cell.extraCount > 0 && <span className="text-[10px] text-muted">외 {cell.extraCount}건</span>}
-            </button>
+              {days.map((day, dayIndex) => {
+                const isSelected = day.date === selectedDate
+                const isToday = day.date === today
+                const hasOverflow = (bands.overflowByDate[day.date] ?? 0) > 0
+
+                return (
+                  <button
+                    key={day.date}
+                    type="button"
+                    onClick={() => onSelectDate(day.date)}
+                    style={{ gridColumn: dayIndex + 1, gridRow: `1 / span ${rowCount}` }}
+                    className="flex flex-col items-start text-left transition-colors hover:bg-surface active:bg-surface"
+                  >
+                    <span
+                      className={`relative m-1.5 flex h-6 w-6 items-center justify-center rounded-full text-xs ${
+                        isSelected
+                          ? 'bg-primary font-bold text-white'
+                          : !day.inCurrentMonth
+                            ? 'text-muted/50'
+                            : isToday
+                              ? 'font-bold text-primary'
+                              : 'text-ink'
+                      }`}
+                    >
+                      {Number(day.date.slice(-2))}
+                      {hasOverflow && <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-muted" />}
+                    </span>
+                  </button>
+                )
+              })}
+
+              {bands.bars.map((bar) => (
+                <div
+                  key={bar.exhibitionId}
+                  style={{ gridColumn: `${bar.colStart + 1} / span ${bar.colSpan}`, gridRow: bar.lane + 2 }}
+                  className={`pointer-events-none mx-1.5 flex items-center truncate px-1.5 text-[9px] font-bold leading-[15px] ${barColorClassName(bar.status)} ${
+                    bar.roundedLeft ? 'rounded-l-full' : ''
+                  } ${bar.roundedRight ? 'rounded-r-full' : ''}`}
+                >
+                  {bar.title}
+                </div>
+              ))}
+            </div>
           )
         })}
       </div>
