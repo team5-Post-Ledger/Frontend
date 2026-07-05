@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useMemo } from 'react'
+import { computeFloorPlacements } from './floorMapPlacement'
 
 export interface FloorMapBooth {
   boothId: number
@@ -24,36 +25,8 @@ export interface FloorMapProps {
   connections?: FloorMapConnection[]
 }
 
-interface Placement {
-  leftPct: number
-  topPct: number
-  widthPct: number
-  heightPct: number
-}
-
-// 좌표 min/max 정규화 대신, 그 층 부스들의 x+width/y+height 최댓값을 도면 크기로 삼는다
-// (spec.md §2.1) — authored 데이터엔 항상 폭/높이가 있어서 "축 값이 전부 같음" edge case가
-// 애초에 생기지 않는다.
-function computePlacements(booths: FloorMapBooth[]): Map<number, Placement> {
-  const placements = new Map<number, Placement>()
-  if (booths.length === 0) return placements
-
-  const maxExtentX = Math.max(...booths.map((booth) => booth.x + booth.width))
-  const maxExtentY = Math.max(...booths.map((booth) => booth.y + booth.height))
-
-  for (const booth of booths) {
-    placements.set(booth.boothId, {
-      leftPct: (booth.x / maxExtentX) * 100,
-      topPct: (booth.y / maxExtentY) * 100,
-      widthPct: (booth.width / maxExtentX) * 100,
-      heightPct: (booth.height / maxExtentY) * 100,
-    })
-  }
-  return placements
-}
-
 export function FloorMap({ booths, renderBox, boxClassName, onBoxClick, connections }: FloorMapProps) {
-  const placements = useMemo(() => computePlacements(booths), [booths])
+  const placements = useMemo(() => computeFloorPlacements(booths), [booths])
 
   if (booths.length === 0) {
     return (
@@ -79,15 +52,20 @@ export function FloorMap({ booths, renderBox, boxClassName, onBoxClick, connecti
             const fromCenter = { x: from.leftPct + from.widthPct / 2, y: from.topPct + from.heightPct / 2 }
             const toCenter = { x: to.leftPct + to.widthPct / 2, y: to.topPct + to.heightPct / 2 }
 
-            // 엘보(직각) 연결: 가로 이동 먼저(from → to의 x, from의 y) → 세로 이동(to의 y)(spec.md §2.2).
-            const points = `${fromCenter.x},${fromCenter.y} ${toCenter.x},${fromCenter.y} ${toCenter.x},${toCenter.y}`
+            // 곡선(S자) 점선 연결(task-map-fix2/spec.md §8) — 수평 중간 지점을 제어점으로 삼아
+            // 엘보의 "가로 먼저 → 세로" 규칙을 부드러운 버전으로 대체한다. 다른 박스를 피해가는
+            // 경로탐색은 여전히 하지 않는다(기존 한계 유지).
+            const midX = (fromCenter.x + toCenter.x) / 2
+            const d = `M ${fromCenter.x},${fromCenter.y} C ${midX},${fromCenter.y} ${midX},${toCenter.y} ${toCenter.x},${toCenter.y}`
             return (
-              <polyline
+              <path
                 key={`${connection.fromBoothId}-${connection.toBoothId}`}
-                points={points}
+                d={d}
                 fill="none"
                 stroke="var(--color-primary)"
                 strokeWidth={1}
+                strokeDasharray="3 2.5"
+                strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
               />
             )
