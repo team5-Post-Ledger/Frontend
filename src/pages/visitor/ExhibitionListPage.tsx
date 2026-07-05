@@ -1,29 +1,17 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
-import { DatePickerPopover } from '../../components/DatePickerPopover'
+import { Link, useSearchParams } from 'react-router'
 import { ExhibitionCard } from '../../components/ExhibitionCard'
+import { ExhibitionFilterPanel } from '../../components/ExhibitionFilterPanel'
 import { QueryState } from '../../components/QueryState'
-import { isExhibitionOnDate, matchesPlace } from '../../features/exhibition/dateRange'
-import { getExhibitionDisplayStatus } from '../../features/exhibition/displayStatus'
+import { QuickFilterPills } from '../../components/QuickFilterPills'
+import { type DatePresetMode, computeDateRangeForPreset, isExhibitionInRange, matchesKeyword, matchesPlace } from '../../features/exhibition/dateRange'
+import { type StatusFilter, matchesStatusFilter } from '../../features/exhibition/displayStatus'
 import { useExhibitions } from '../../features/exhibition/hooks'
+import type { ExhibitionFilterState } from '../../features/exhibition/useFilterState'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { isValidDateKey } from '../../lib/calendarGrid'
-import type { Exhibition } from '../../types'
-
-type StatusFilter = 'ALL' | 'ONGOING' | 'UPCOMING'
-
-const STATUS_FILTERS: Array<{ value: StatusFilter; label: string }> = [
-  { value: 'ALL', label: '상태 전체' },
-  { value: 'ONGOING', label: '진행중' },
-  { value: 'UPCOMING', label: '예약중' },
-]
 
 const PAGE_SIZE = 9
-
-function matchesStatusFilter(exhibition: Exhibition, filter: StatusFilter): boolean {
-  if (filter === 'ALL') return true
-  const displayLabel = getExhibitionDisplayStatus(exhibition).label
-  return filter === 'ONGOING' ? displayLabel === '진행중' : displayLabel === '예약중'
-}
 
 function SearchIcon() {
   return (
@@ -34,30 +22,64 @@ function SearchIcon() {
   )
 }
 
+function SparkleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z" />
+    </svg>
+  )
+}
+
+function readFilterStateFromParams(params: URLSearchParams): ExhibitionFilterState {
+  const dateMode = (params.get('dateMode') ?? '') as DatePresetMode | ''
+  const dateFrom = params.get('dateFrom') ?? ''
+  const dateTo = params.get('dateTo') ?? ''
+  const hasValidRange = dateMode !== '' && isValidDateKey(dateFrom) && isValidDateKey(dateTo)
+
+  return {
+    keyword: params.get('q') ?? '',
+    dateMode: hasValidRange ? dateMode : '',
+    dateFrom: hasValidRange ? dateFrom : '',
+    dateTo: hasValidRange ? dateTo : '',
+    venue: params.get('venue') ?? '',
+    status: (params.get('status') as StatusFilter | null) ?? 'ALL',
+  }
+}
+
 export default function ExhibitionListPage() {
   // URL(searchParams)을 유일한 출처로 두고 로컬 state로 따로 미러링하지 않는다 — 그래야
   // "state→URL"과 "URL→state" 양방향을 항상 맞춰야 하는 동기화 문제 자체가 생기지 않는다.
   const [searchParams, setSearchParams] = useSearchParams()
-  const searchTerm = searchParams.get('q') ?? ''
-  const dateFilter = searchParams.get('date') ?? ''
-  const venueFilter = searchParams.get('venue') ?? ''
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
+  const filterState = useMemo(() => readFilterStateFromParams(searchParams), [searchParams])
   const [page, setPage] = useState(1)
+  const [panelOpen, setPanelOpen] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
-  function updateSearchParams(next: { q?: string; date?: string; venue?: string }) {
-    const q = next.q ?? searchTerm
-    const date = next.date ?? dateFilter
-    const venue = next.venue ?? venueFilter
+  function updateSearchParams(patch: Partial<ExhibitionFilterState>) {
+    const next: ExhibitionFilterState = { ...filterState, ...patch }
 
     setSearchParams(
       (prev) => {
         const params = new URLSearchParams(prev)
-        if (q.trim()) params.set('q', q.trim())
+        if (next.keyword.trim()) params.set('q', next.keyword.trim())
         else params.delete('q')
-        if (date) params.set('date', date)
-        else params.delete('date')
-        if (venue.trim()) params.set('venue', venue.trim())
+
+        if (next.dateMode) {
+          params.set('dateMode', next.dateMode)
+          params.set('dateFrom', next.dateFrom)
+          params.set('dateTo', next.dateTo)
+        } else {
+          params.delete('dateMode')
+          params.delete('dateFrom')
+          params.delete('dateTo')
+        }
+
+        if (next.venue.trim()) params.set('venue', next.venue.trim())
         else params.delete('venue')
+
+        if (next.status !== 'ALL') params.set('status', next.status)
+        else params.delete('status')
+
         return params
       },
       { replace: true },
@@ -68,19 +90,15 @@ export default function ExhibitionListPage() {
 
   const filtered = useMemo(() => {
     const data = exhibitions.data ?? []
-    const term = searchTerm.trim().toLowerCase()
-    // 형식이 깨진 date 쿼리 파라미터(예: ?date=hello)는 날짜 필터를 무시한 것으로 취급한다.
-    // 검증 없이 그대로 문자열 비교하면 전부 걸러져 결과가 조용히 0건이 돼버린다.
-    const hasValidDateFilter = dateFilter !== '' && isValidDateKey(dateFilter)
 
     return data.filter((exhibition) => {
-      if (term && !exhibition.title.toLowerCase().includes(term)) return false
-      if (!matchesStatusFilter(exhibition, statusFilter)) return false
-      if (hasValidDateFilter && !isExhibitionOnDate(exhibition, dateFilter)) return false
-      if (!matchesPlace(exhibition, venueFilter)) return false
+      if (!matchesKeyword(exhibition, filterState.keyword)) return false
+      if (!matchesPlace(exhibition, filterState.venue)) return false
+      if (filterState.dateMode && !isExhibitionInRange(exhibition, { from: filterState.dateFrom, to: filterState.dateTo })) return false
+      if (!matchesStatusFilter(exhibition, filterState.status)) return false
       return true
     })
-  }, [exhibitions.data, searchTerm, statusFilter, dateFilter, venueFilter])
+  }, [exhibitions.data, filterState])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -88,22 +106,28 @@ export default function ExhibitionListPage() {
 
   function handleSearchChange(value: string) {
     setPage(1)
-    updateSearchParams({ q: value })
+    updateSearchParams({ keyword: value })
   }
 
-  function handleStatusChange(value: StatusFilter) {
-    setStatusFilter(value)
+  function handleSelectDatePreset(mode: Exclude<DatePresetMode, 'custom'>) {
     setPage(1)
+    if (filterState.dateMode === mode) {
+      updateSearchParams({ dateMode: '', dateFrom: '', dateTo: '' })
+      return
+    }
+    // 반환 키가 from/to라서 스프레드로 흘리면 dateFrom/dateTo에 매핑되지 않는다 — 반드시 명시적으로 매핑.
+    const range = computeDateRangeForPreset(mode)
+    updateSearchParams({ dateMode: mode, dateFrom: range.from, dateTo: range.to })
   }
 
-  function handleDateChange(value: string) {
+  function handleSelectVenue(venue: string) {
     setPage(1)
-    updateSearchParams({ date: value })
+    updateSearchParams({ venue: filterState.venue === venue ? '' : venue })
   }
 
-  function handleVenueChange(value: string) {
+  function handleApplyFilters(next: ExhibitionFilterState) {
     setPage(1)
-    updateSearchParams({ venue: value })
+    updateSearchParams(next)
   }
 
   return (
@@ -113,44 +137,45 @@ export default function ExhibitionListPage() {
         <p className="mt-1 text-sm text-muted">예약 가능한 박람회를 검색하고 둘러보세요.</p>
       </div>
 
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="grid grid-cols-2 border border-line bg-white shadow-sm lg:flex-1 lg:grid-cols-[7fr_1.5fr_1.5fr]">
-          <div className="relative col-span-2 border-b border-line lg:col-span-1 lg:border-b-0 lg:border-r">
-            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted">
-              <SearchIcon />
-            </span>
-            <input
-              value={searchTerm}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              placeholder="박람회 이름으로 검색"
-              className="h-[42px] w-full bg-transparent pl-9 pr-3 text-sm text-ink outline-none focus:bg-surface focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
-            />
-          </div>
-
-          <div className="border-r border-line">
-            <DatePickerPopover value={dateFilter} onChange={handleDateChange} placeholder="관람일" bare />
-          </div>
-
+      <div className="relative mb-6">
+        <div className="flex items-center gap-2 border border-line bg-white py-2 pl-4 pr-2 shadow-sm transition-colors focus-within:border-primary">
+          <span className="pointer-events-none shrink-0 text-muted">
+            <SearchIcon />
+          </span>
           <input
-            value={venueFilter}
-            onChange={(event) => handleVenueChange(event.target.value)}
-            placeholder="장소(지역, 전시장명)"
-            aria-label="장소"
-            className="h-[42px] w-full bg-transparent px-3.5 text-sm text-ink outline-none focus:bg-surface focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
+            value={filterState.keyword}
+            onChange={(event) => handleSearchChange(event.target.value)}
+            placeholder="박람회명, 지역을 검색해보세요"
+            aria-label="키워드"
+            className="h-[42px] w-full min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
           />
+          <Link
+            to="/assistant"
+            className="flex h-[42px] shrink-0 items-center justify-center gap-1.5 bg-primary px-3 text-sm font-bold text-white transition-colors hover:bg-primary-hover sm:px-5"
+          >
+            <SparkleIcon />
+            AI에게 물어보기
+          </Link>
         </div>
 
-        <select
-          value={statusFilter}
-          onChange={(event) => handleStatusChange(event.target.value as StatusFilter)}
-          className="h-[42px] w-full border border-line bg-white px-3 text-sm text-ink outline-none focus:border-primary lg:w-auto"
-        >
-          {STATUS_FILTERS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <QuickFilterPills
+          dateMode={filterState.dateMode}
+          venue={filterState.venue}
+          onSelectDatePreset={handleSelectDatePreset}
+          onSelectVenue={handleSelectVenue}
+          panelOpen={panelOpen}
+          onTogglePanel={() => setPanelOpen((prev) => !prev)}
+        />
+
+        {panelOpen && (
+          <ExhibitionFilterPanel
+            value={filterState}
+            onApply={handleApplyFilters}
+            onClose={() => setPanelOpen(false)}
+            variant={isDesktop ? 'dropdown' : 'sheet'}
+            applyMode={isDesktop ? 'batch' : 'immediate'}
+          />
+        )}
       </div>
 
       <QueryState

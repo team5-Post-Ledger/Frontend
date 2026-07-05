@@ -25,3 +25,14 @@ export function getExhibitionDisplayStatus(
 export function isOngoingToday(exhibition: Pick<Exhibition, 'status' | 'startDate' | 'endDate'>): boolean {
   return getExhibitionDisplayStatus(exhibition).label === '진행중'
 }
+
+export type StatusFilter = 'ALL' | 'ONGOING' | 'UPCOMING'
+
+export function matchesStatusFilter(
+  exhibition: Pick<Exhibition, 'status' | 'startDate' | 'endDate'>,
+  filter: StatusFilter,
+): boolean {
+  if (filter === 'ALL') return true
+  const displayLabel = getExhibitionDisplayStatus(exhibition).label
+  return filter === 'ONGOING' ? displayLabel === '진행중' : displayLabel === '예약중'
+}

@@ -1,10 +1,11 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { DatePickerPopover } from './DatePickerPopover'
-import { fieldControlClass } from './Field'
-
-type SearchTab = 'exhibition' | 'ai'
+import { computeDateRangeForPreset, type DatePresetMode } from '../features/exhibition/dateRange'
+import { EMPTY_FILTER_STATE, type ExhibitionFilterState } from '../features/exhibition/useFilterState'
+import { useMediaQuery } from '../hooks/useMediaQuery'
+import { ExhibitionFilterPanel } from './ExhibitionFilterPanel'
+import { QuickFilterPills } from './QuickFilterPills'
 
 function SearchIcon() {
   return (
@@ -17,105 +18,118 @@ function SearchIcon() {
 
 function SparkleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z" />
     </svg>
   )
 }
 
+function serializeFilterState(state: ExhibitionFilterState): string {
+  const params = new URLSearchParams()
+  if (state.keyword.trim()) params.set('q', state.keyword.trim())
+  if (state.dateMode) {
+    params.set('dateMode', state.dateMode)
+    params.set('dateFrom', state.dateFrom)
+    params.set('dateTo', state.dateTo)
+  }
+  if (state.venue.trim()) params.set('venue', state.venue.trim())
+  if (state.status !== 'ALL') params.set('status', state.status)
+  return params.toString()
+}
+
 export function SearchCard() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<SearchTab>('exhibition')
-  const [keyword, setKeyword] = useState('')
-  const [date, setDate] = useState('')
-  const [place, setPlace] = useState('')
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const [filters, setFilters] = useState<ExhibitionFilterState>(EMPTY_FILTER_STATE)
+  const [panelOpen, setPanelOpen] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const params = new URLSearchParams()
-    if (keyword.trim()) params.set('q', keyword.trim())
-    if (date) params.set('date', date)
-    if (place.trim()) params.set('venue', place.trim())
-    const query = params.toString()
+  // 홈에서는 pill/상세필터가 조건을 쌓기만 하고, 검색 실행(이동)은 명시적 액션으로만 일어난다.
+  const hasSelection = filters.dateMode !== '' || filters.venue.trim() !== '' || filters.status !== 'ALL'
+
+  function goToExhibitions(state: ExhibitionFilterState) {
+    const query = serializeFilterState(state)
     navigate(query ? `/exhibitions?${query}` : '/exhibitions')
   }
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    goToExhibitions(filters)
+  }
+
+  function handleSelectDatePreset(mode: Exclude<DatePresetMode, 'custom'>) {
+    setFilters((prev) => {
+      if (prev.dateMode === mode) return { ...prev, dateMode: '', dateFrom: '', dateTo: '' }
+      const range = computeDateRangeForPreset(mode)
+      return { ...prev, dateMode: mode, dateFrom: range.from, dateTo: range.to }
+    })
+  }
+
+  function handleSelectVenue(venue: string) {
+    setFilters((prev) => ({ ...prev, venue: prev.venue === venue ? '' : venue }))
+  }
+
+  function handleApplyFilters(next: ExhibitionFilterState) {
+    setFilters(next)
+    // 데스크톱 "필터 적용"은 명시적 실행 버튼이므로 바로 이동한다.
+    // 모바일 시트(immediate)는 조건만 쌓고, 검색 실행 링크/Enter로 이동한다.
+    if (isDesktop) goToExhibitions(next)
+  }
+
   return (
-    <div className="mx-auto w-full max-w-[720px] border border-line bg-white">
-      <div className="flex">
-        <button
-          type="button"
-          onClick={() => setActiveTab('exhibition')}
-          className={`flex-1 border-b-2 px-4 py-3 text-sm font-bold transition-colors active:bg-surface ${
-            activeTab === 'exhibition' ? 'border-primary text-ink' : 'border-transparent text-muted'
-          }`}
-        >
-          박람회 찾기
+    <div className="relative mx-auto w-full max-w-[720px]">
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-center gap-2 border border-primary bg-white py-2 pl-4 pr-2 transition-shadow focus-within:ring-2 focus-within:ring-primary/20"
+      >
+        <button type="submit" aria-label="검색" className="shrink-0 text-muted transition-colors hover:text-ink">
+          <SearchIcon />
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('ai')}
-          className={`flex-1 border-b-2 px-4 py-3 text-sm font-bold transition-colors active:bg-surface ${
-            activeTab === 'ai' ? 'border-primary text-ink' : 'border-transparent text-muted'
-          }`}
+        <input
+          value={filters.keyword}
+          onChange={(event) => setFilters((prev) => ({ ...prev, keyword: event.target.value }))}
+          placeholder="박람회명, 지역을 검색해보세요"
+          aria-label="키워드"
+          className="h-[42px] w-full min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+        />
+        <Link
+          to="/assistant"
+          className="flex h-[42px] shrink-0 items-center justify-center gap-1.5 bg-primary px-3 text-sm font-bold text-white transition-colors hover:bg-primary-hover sm:px-5"
         >
-          AI에게 물어보세요
-        </button>
-      </div>
+          <SparkleIcon />
+          AI에게 물어보기
+        </Link>
+      </form>
 
-      {activeTab === 'exhibition' ? (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:gap-3">
-          <div className="relative lg:flex-1">
-            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted">
-              <SearchIcon />
-            </span>
-            <input
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              placeholder="박람회 이름"
-              aria-label="키워드"
-              className={`${fieldControlClass} pl-9`}
-            />
-          </div>
+      <QuickFilterPills
+        dateMode={filters.dateMode}
+        venue={filters.venue}
+        onSelectDatePreset={handleSelectDatePreset}
+        onSelectVenue={handleSelectVenue}
+        panelOpen={panelOpen}
+        onTogglePanel={() => setPanelOpen((prev) => !prev)}
+        className="lg:justify-center"
+      />
 
-          <div className="grid grid-cols-2 gap-3 lg:contents">
-            <div className="lg:flex-1">
-              <DatePickerPopover value={date} onChange={setDate} placeholder="관람일" />
-            </div>
-
-            <div className="lg:flex-1">
-              <input
-                value={place}
-                onChange={(event) => setPlace(event.target.value)}
-                placeholder="장소(지역, 전시장명)"
-                aria-label="장소"
-                className={fieldControlClass}
-              />
-            </div>
-          </div>
-
+      {hasSelection && (
+        <div className="flex justify-center pt-2">
           <button
-            type="submit"
-            className="flex h-[42px] w-full shrink-0 items-center justify-center bg-primary px-6 text-sm font-bold text-white transition-colors hover:bg-primary-hover active:bg-primary-hover lg:w-auto"
+            type="button"
+            onClick={() => goToExhibitions(filters)}
+            className="text-xs font-bold text-primary transition-colors hover:text-primary-hover"
           >
-            검색
+            선택한 조건으로 검색 →
           </button>
-        </form>
-      ) : (
-        <div className="flex flex-col items-center gap-3 p-6 text-center">
-          <span className="flex h-10 w-10 items-center justify-center bg-surface text-primary">
-            <SparkleIcon />
-          </span>
-          <p className="max-w-[420px] text-sm leading-relaxed text-muted">
-            궁금한 부스나 세션을 자연어로 물어보면 AI가 근거와 함께 답해드려요.
-          </p>
-          <Link
-            to="/assistant"
-            className="flex h-11 items-center justify-center bg-primary px-6 text-sm font-bold text-white transition-colors hover:bg-primary-hover active:bg-primary-hover"
-          >
-            AI에게 물어보러 가기
-          </Link>
         </div>
+      )}
+
+      {panelOpen && (
+        <ExhibitionFilterPanel
+          value={filters}
+          onApply={handleApplyFilters}
+          onClose={() => setPanelOpen(false)}
+          variant={isDesktop ? 'dropdown' : 'sheet'}
+          applyMode={isDesktop ? 'batch' : 'immediate'}
+        />
       )}
     </div>
   )
