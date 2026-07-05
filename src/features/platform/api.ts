@@ -8,18 +8,24 @@ import {
   platformUserSeed,
 } from '../../lib/mock/platformSeed'
 import { mockDelay } from '../../lib/api/mockClient'
+import { findPendingInviteByEmail, issueInvite } from '../../lib/mock/inviteStore'
 
 export interface PlatformExhibitionSummary extends Exhibition {
   adminCount: number
 }
 
+// INVITED = 초대 메일 발송됨·비밀번호 미설정(수락 대기). 수락 시 ACTIVE로 전환된다(명세 §2).
+export type AccountStatus = 'INVITED' | 'ACTIVE' | 'INACTIVE'
+
 export interface PlatformAdminSummary extends User {
   assignedExhibitionIds: number[]
   isActive: boolean
+  accountStatus: AccountStatus
 }
 
 export interface PlatformAccountantSummary extends User {
   isActive: boolean
+  accountStatus: AccountStatus
 }
 
 export interface PlatformAdSummary extends Advertisement {
@@ -77,17 +83,11 @@ export type UpdatePlatformExhibitionInput = Partial<
   >
 >
 
-export interface CreatePlatformAdminInput {
+// POST /api/admin/invite 계약(email/name/role)에 맞춘 입력 — phone·exhibitionId는 계약에 없다.
+// 담당 행사는 초대 후 "배정 관리"(assignPlatformAdmin)로 별도 배정한다.
+export interface InvitePlatformAccountInput {
   email: string
   name: string
-  phone?: string | null
-  exhibitionId?: number
-}
-
-export interface CreatePlatformAccountantInput {
-  email: string
-  name: string
-  phone?: string | null
 }
 
 export type CreatePlatformAdSlotInput = Pick<AdSlot, 'exhibitionId' | 'placement' | 'basePrice'> &
@@ -146,11 +146,17 @@ function toPlatformExhibitionSummary(exhibition: Exhibition): PlatformExhibition
   }
 }
 
+function getAccountStatus(user: User): AccountStatus {
+  if (user.deletedAt !== null) return 'INACTIVE'
+  return findPendingInviteByEmail(user.email) ? 'INVITED' : 'ACTIVE'
+}
+
 function toPlatformAdminSummary(admin: User): PlatformAdminSummary {
   return {
     ...admin,
     assignedExhibitionIds: getAssignedExhibitionIds(admin.id),
     isActive: admin.deletedAt === null,
+    accountStatus: getAccountStatus(admin),
   }
 }
 
@@ -158,6 +164,7 @@ function toPlatformAccountantSummary(accountant: User): PlatformAccountantSummar
   return {
     ...accountant,
     isActive: accountant.deletedAt === null,
+    accountStatus: getAccountStatus(accountant),
   }
 }
 
@@ -322,30 +329,38 @@ export async function deletePlatformExhibition(id: number): Promise<void> {
   await mockDelay(null, 350)
 }
 
-export async function createPlatformAdmin(input: CreatePlatformAdminInput): Promise<PlatformAdminSummary> {
+// POST /api/admin/invite — 초대 메일 발송은 백엔드가 담당(Gmail SMTP). mock은 유저를 INVITED 상태로 만들고 토큰만 발급한다.
+export async function invitePlatformAdmin(input: InvitePlatformAccountInput): Promise<PlatformAdminSummary> {
+  if (platformUsers.some((user) => user.email.toLowerCase() === input.email.toLowerCase())) {
+    throw new Error('이미 등록된 이메일입니다.')
+  }
+
   const created: User = {
     id: nextId(platformUsers),
     email: input.email,
     name: input.name,
-    phone: input.phone ?? null,
+    phone: null,
     role: 'EXPO_ADMIN',
     deletedAt: null,
   }
 
   platformUsers = [created, ...platformUsers]
-  if (input.exhibitionId) {
-    platformExhibitionAdmins = [
-      {
-        id: nextId(platformExhibitionAdmins),
-        exhibitionId: input.exhibitionId,
-        userId: created.id,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      },
-      ...platformExhibitionAdmins,
-    ]
-  }
+  issueInvite(created.email, created.role)
   return mockDelay(toPlatformAdminSummary(created), 350)
+}
+
+// INVITED 유저 재초대 — 명세상 기존 토큰을 폐기하고 재발급한다.
+export async function resendPlatformInvite(userId: number): Promise<void> {
+  const user = platformUsers.find((item) => item.id === userId)
+  if (!user) {
+    throw new Error('대상 계정을 찾을 수 없습니다.')
+  }
+  if (!findPendingInviteByEmail(user.email)) {
+    throw new Error('이미 비밀번호를 설정한 계정입니다.')
+  }
+
+  issueInvite(user.email, user.role)
+  await mockDelay(null, 350)
 }
 
 export async function assignPlatformAdmin(exhibitionId: number, userId: number): Promise<PlatformAdminSummary> {
@@ -373,19 +388,24 @@ export async function assignPlatformAdmin(exhibitionId: number, userId: number):
   return mockDelay(toPlatformAdminSummary(admin), 350)
 }
 
-export async function createPlatformAccountant(
-  input: CreatePlatformAccountantInput,
+export async function invitePlatformAccountant(
+  input: InvitePlatformAccountInput,
 ): Promise<PlatformAccountantSummary> {
+  if (platformUsers.some((user) => user.email.toLowerCase() === input.email.toLowerCase())) {
+    throw new Error('이미 등록된 이메일입니다.')
+  }
+
   const created: User = {
     id: nextId(platformUsers),
     email: input.email,
     name: input.name,
-    phone: input.phone ?? null,
+    phone: null,
     role: 'ACCOUNTANT',
     deletedAt: null,
   }
 
   platformUsers = [created, ...platformUsers]
+  issueInvite(created.email, created.role)
   return mockDelay(toPlatformAccountantSummary(created), 350)
 }
 

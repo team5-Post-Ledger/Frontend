@@ -2,9 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   activatePlatformAccountant,
   assignPlatformAdmin,
-  createPlatformAccountant,
   createPlatformAd,
-  createPlatformAdmin,
   createPlatformAdSlot,
   createPlatformExhibition,
   deactivatePlatformAccountant,
@@ -12,22 +10,24 @@ import {
   deletePlatformExhibition,
   getPlatformExhibition,
   getPlatformStatsOverview,
+  invitePlatformAccountant,
+  invitePlatformAdmin,
   listPlatformAccountants,
   listPlatformAdmins,
   listPlatformAdSlots,
   listPlatformAds,
   listPlatformExhibitionAdmins,
   listPlatformExhibitions,
+  resendPlatformInvite,
   updatePlatformAd,
   updatePlatformAdSlot,
   updatePlatformAdStatus,
   updatePlatformExhibition,
   updatePlatformExhibitionStatus,
-  type CreatePlatformAccountantInput,
   type CreatePlatformAdInput,
-  type CreatePlatformAdminInput,
   type CreatePlatformAdSlotInput,
   type CreatePlatformExhibitionInput,
+  type InvitePlatformAccountInput,
   type UpdatePlatformAdInput,
   type UpdatePlatformAdSlotInput,
   type UpdatePlatformExhibitionInput,
@@ -155,18 +155,25 @@ export function useDeletePlatformExhibition() {
   })
 }
 
-export function useCreatePlatformAdmin() {
+export function useInvitePlatformAdmin() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: CreatePlatformAdminInput) => createPlatformAdmin(input),
-    onSuccess: (admin) => {
+    mutationFn: (input: InvitePlatformAccountInput) => invitePlatformAdmin(input),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformQueryKeys.admins })
-      queryClient.invalidateQueries({ queryKey: platformQueryKeys.exhibitions })
-      admin.assignedExhibitionIds.forEach((id) => {
-        queryClient.invalidateQueries({ queryKey: platformQueryKeys.exhibitionAdmins(id) })
-        queryClient.invalidateQueries({ queryKey: platformQueryKeys.exhibition(id) })
-      })
+    },
+  })
+}
+
+export function useResendPlatformInvite() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (userId: number) => resendPlatformInvite(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformQueryKeys.admins })
+      queryClient.invalidateQueries({ queryKey: platformQueryKeys.accountants })
     },
   })
 }
@@ -186,11 +193,11 @@ export function useAssignPlatformAdmin() {
   })
 }
 
-export function useCreatePlatformAccountant() {
+export function useInvitePlatformAccountant() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: CreatePlatformAccountantInput) => createPlatformAccountant(input),
+    mutationFn: (input: InvitePlatformAccountInput) => invitePlatformAccountant(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformQueryKeys.accountants })
     },

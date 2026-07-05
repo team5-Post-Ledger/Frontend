@@ -1,13 +1,15 @@
 import { useState, type FormEvent } from 'react'
+import { AccountStatusBadge } from '../../components/AccountStatusBadge'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DataTable, type DataTableColumn } from '../../components/DataTable'
 import { Field, fieldControlClass, fieldControlErrorClass } from '../../components/Field'
 import type { PlatformAccountantSummary } from '../../features/platform/api'
 import {
   useActivatePlatformAccountant,
-  useCreatePlatformAccountant,
   useDeactivatePlatformAccountant,
+  useInvitePlatformAccountant,
   usePlatformAccountants,
+  useResendPlatformInvite,
 } from '../../features/platform/hooks'
 
 type PendingAction =
@@ -17,15 +19,13 @@ type PendingAction =
 interface AccountantFormValues {
   name: string
   email: string
-  phone: string
 }
 
-type AccountantFormErrors = Partial<Record<keyof Pick<AccountantFormValues, 'name' | 'email'>, string>>
+type AccountantFormErrors = Partial<Record<keyof AccountantFormValues, string>>
 
 const INITIAL_FORM_VALUES: AccountantFormValues = {
   name: '',
   email: '',
-  phone: '',
 }
 
 function isValidEmail(email: string) {
@@ -34,13 +34,16 @@ function isValidEmail(email: string) {
 
 export default function PlatformAccountantsPage() {
   const accountantsQuery = usePlatformAccountants()
-  const createAccountant = useCreatePlatformAccountant()
+  const inviteAccountant = useInvitePlatformAccountant()
+  const resendInvite = useResendPlatformInvite()
   const deactivateAccountant = useDeactivatePlatformAccountant()
   const activateAccountant = useActivatePlatformAccountant()
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [formValues, setFormValues] = useState<AccountantFormValues>(INITIAL_FORM_VALUES)
   const [formErrors, setFormErrors] = useState<AccountantFormErrors>({})
+  const [lastInvited, setLastInvited] = useState<{ name: string; email: string } | null>(null)
+  const [lastResentId, setLastResentId] = useState<number | null>(null)
 
   const accountants = (accountantsQuery.data ?? []).filter(
     (accountant) => accountant.role === 'ACCOUNTANT',
@@ -52,16 +55,17 @@ export default function PlatformAccountantsPage() {
   function resetCreateForm() {
     setFormValues(INITIAL_FORM_VALUES)
     setFormErrors({})
-    createAccountant.reset()
+    inviteAccountant.reset()
   }
 
   function handleOpenCreateForm() {
     resetCreateForm()
+    setLastInvited(null)
     setIsFormOpen(true)
   }
 
   function handleCancelCreateForm() {
-    if (createAccountant.isPending) {
+    if (inviteAccountant.isPending) {
       return
     }
 
@@ -95,19 +99,26 @@ export default function PlatformAccountantsPage() {
       return
     }
 
-    createAccountant.mutate(
-      {
-        name: formValues.name.trim(),
-        email: formValues.email.trim(),
-        phone: formValues.phone.trim() || null,
-      },
+    const name = formValues.name.trim()
+    const email = formValues.email.trim()
+
+    inviteAccountant.mutate(
+      { name, email },
       {
         onSuccess: () => {
           resetCreateForm()
           setIsFormOpen(false)
+          setLastInvited({ name, email })
         },
       },
     )
+  }
+
+  function handleResendInvite(accountant: PlatformAccountantSummary) {
+    setLastResentId(null)
+    resendInvite.mutate(accountant.id, {
+      onSuccess: () => setLastResentId(accountant.id),
+    })
   }
 
   function handleToggleAccountant(accountant: PlatformAccountantSummary) {
@@ -173,36 +184,38 @@ export default function PlatformAccountantsPage() {
     {
       key: 'active',
       header: '상태',
-      render: (accountant) => (
-        <span
-          className={[
-            'inline-flex rounded-full px-2 py-1 text-xs font-semibold',
-            accountant.isActive ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted',
-          ].join(' ')}
-        >
-          {accountant.isActive ? '활성' : '비활성'}
-        </span>
-      ),
+      render: (accountant) => <AccountStatusBadge status={accountant.accountStatus} />,
     },
     {
       key: 'actions',
       header: '관리',
-      render: (accountant) => (
-        <button
-          type="button"
-          disabled={isMutating}
-          onClick={() => handleToggleAccountant(accountant)}
-          className={[
-            'rounded-md border border-line px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:text-muted disabled:opacity-55',
-            accountant.isActive
-              ? 'text-danger hover:border-danger hover:bg-danger/5 focus-visible:outline-danger'
-              : 'text-primary hover:border-primary hover:bg-surface focus-visible:outline-primary',
-          ].join(' ')}
-          title={accountant.isActive ? 'ACCOUNTANT 계정을 비활성 처리합니다.' : 'ACCOUNTANT 계정을 다시 활성화합니다.'}
-        >
-          {accountant.isActive ? '비활성화' : '활성화'}
-        </button>
-      ),
+      render: (accountant) =>
+        accountant.accountStatus === 'INVITED' ? (
+          <button
+            type="button"
+            disabled={resendInvite.isPending}
+            onClick={() => handleResendInvite(accountant)}
+            title="초대 메일을 다시 보냅니다. 기존 링크는 사용할 수 없게 됩니다."
+            className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {lastResentId === accountant.id ? '재발송 완료' : '초대 재발송'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={isMutating}
+            onClick={() => handleToggleAccountant(accountant)}
+            className={[
+              'rounded-md border border-line px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:text-muted disabled:opacity-55',
+              accountant.isActive
+                ? 'text-danger hover:border-danger hover:bg-danger/5 focus-visible:outline-danger'
+                : 'text-primary hover:border-primary hover:bg-surface focus-visible:outline-primary',
+            ].join(' ')}
+            title={accountant.isActive ? 'ACCOUNTANT 계정을 비활성 처리합니다.' : 'ACCOUNTANT 계정을 다시 활성화합니다.'}
+          >
+            {accountant.isActive ? '비활성화' : '활성화'}
+          </button>
+        ),
     },
   ]
 
@@ -224,7 +237,7 @@ export default function PlatformAccountantsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">ACCOUNTANT 관리</h1>
           <p className="mt-2 text-sm text-muted">
-            정산 담당 계정을 발급하고 비활성 상태를 관리합니다.
+            정산 담당자를 이메일로 초대하고 비활성 상태를 관리합니다.
           </p>
         </div>
         <div className="flex flex-col items-start gap-2 md:items-end">
@@ -233,25 +246,34 @@ export default function PlatformAccountantsPage() {
             onClick={handleOpenCreateForm}
             className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            회계 계정 발급
+            회계 계정 초대
           </button>
         </div>
       </div>
 
+      {lastInvited && (
+        <div className="border border-success/30 bg-success/5 px-3 py-2 text-sm font-semibold text-success">
+          {lastInvited.name}님({lastInvited.email})에게 초대 메일을 보냈습니다. 링크에서 비밀번호를 설정하면 계정이
+          활성화됩니다.
+        </div>
+      )}
+
       {isFormOpen && (
         <form onSubmit={handleSubmitCreateForm} className="border border-line bg-surface p-5">
           <div className="mb-5">
-            <h2 className="text-lg font-extrabold text-ink">ACCOUNTANT 발급</h2>
-            <p className="mt-1 text-sm text-muted">정산 담당자가 사용할 계정을 생성합니다.</p>
+            <h2 className="text-lg font-extrabold text-ink">ACCOUNTANT 초대</h2>
+            <p className="mt-1 text-sm text-muted">
+              초대 메일의 링크로 본인이 직접 비밀번호를 설정하면 계정이 활성화됩니다.
+            </p>
           </div>
 
-          {createAccountant.isError && (
+          {inviteAccountant.isError && (
             <div className="mb-4 border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-semibold text-danger">
-              계정 발급에 실패했습니다.
+              {inviteAccountant.error instanceof Error ? inviteAccountant.error.message : '회계 계정 초대에 실패했습니다.'}
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <Field label="이름" id="accountant-name" required error={formErrors.name}>
               <input
                 id="accountant-name"
@@ -260,7 +282,7 @@ export default function PlatformAccountantsPage() {
                   setFormValues((prev) => ({ ...prev, name: event.target.value }))
                   setFormErrors((prev) => ({ ...prev, name: undefined }))
                 }}
-                disabled={createAccountant.isPending}
+                disabled={inviteAccountant.isPending}
                 className={[fieldControlClass, formErrors.name ? fieldControlErrorClass : ''].join(' ')}
               />
             </Field>
@@ -274,18 +296,8 @@ export default function PlatformAccountantsPage() {
                   setFormValues((prev) => ({ ...prev, email: event.target.value }))
                   setFormErrors((prev) => ({ ...prev, email: undefined }))
                 }}
-                disabled={createAccountant.isPending}
+                disabled={inviteAccountant.isPending}
                 className={[fieldControlClass, formErrors.email ? fieldControlErrorClass : ''].join(' ')}
-              />
-            </Field>
-
-            <Field label="연락처" id="accountant-phone" hint="선택 입력">
-              <input
-                id="accountant-phone"
-                value={formValues.phone}
-                onChange={(event) => setFormValues((prev) => ({ ...prev, phone: event.target.value }))}
-                disabled={createAccountant.isPending}
-                className={fieldControlClass}
               />
             </Field>
           </div>
@@ -293,7 +305,7 @@ export default function PlatformAccountantsPage() {
           <div className="mt-5 flex justify-end gap-2">
             <button
               type="button"
-              disabled={createAccountant.isPending}
+              disabled={inviteAccountant.isPending}
               onClick={handleCancelCreateForm}
               className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-white hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
             >
@@ -301,10 +313,10 @@ export default function PlatformAccountantsPage() {
             </button>
             <button
               type="submit"
-              disabled={createAccountant.isPending}
+              disabled={inviteAccountant.isPending}
               className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
             >
-              {createAccountant.isPending ? '발급 중...' : '발급'}
+              {inviteAccountant.isPending ? '발송 중...' : '초대 메일 발송'}
             </button>
           </div>
         </form>

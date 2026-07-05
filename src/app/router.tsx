@@ -22,6 +22,7 @@ import StatsDashboardPage from '../pages/admin/StatsDashboardPage'
 import StatsFlowPage from '../pages/admin/StatsFlowPage'
 import TicketTypesPage from '../pages/admin/TicketTypesPage'
 import TimeSlotsPage from '../pages/admin/TimeSlotsPage'
+import InviteAcceptPage from '../pages/auth/InviteAcceptPage'
 import LoginPage from '../pages/auth/LoginPage'
 import SignupPage from '../pages/auth/SignupPage'
 import PlatformAccountantsPage from '../pages/platform/PlatformAccountantsPage'
@@ -98,6 +99,8 @@ export function AppRouter() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        {/* 초대 메일 링크 랜딩 — 초대받은 사람은 아직 계정 비밀번호가 없어 Public이어야 한다(명세 §2). */}
+        <Route path="/invite/accept" element={<InviteAcceptPage />} />
       </Route>
       <Route path="/403" element={<ForbiddenPage />} />
 

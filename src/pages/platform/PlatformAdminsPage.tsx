@@ -4,19 +4,19 @@ import { Field, fieldControlClass, fieldControlErrorClass } from '../../componen
 import type { PlatformAdminSummary } from '../../features/platform/api'
 import {
   useAssignPlatformAdmin,
-  useCreatePlatformAdmin,
+  useInvitePlatformAdmin,
   usePlatformAdmins,
   usePlatformExhibitions,
+  useResendPlatformInvite,
 } from '../../features/platform/hooks'
+import { AccountStatusBadge } from '../../components/AccountStatusBadge'
 
 interface AdminFormValues {
   name: string
   email: string
-  phone: string
-  exhibitionId: string
 }
 
-type AdminFormErrors = Partial<Record<keyof Pick<AdminFormValues, 'name' | 'email' | 'exhibitionId'>, string>>
+type AdminFormErrors = Partial<Record<keyof AdminFormValues, string>>
 
 interface AssignmentFormValues {
   exhibitionId: string
@@ -27,8 +27,6 @@ type AssignmentFormErrors = Partial<Record<keyof AssignmentFormValues, string>>
 const INITIAL_FORM_VALUES: AdminFormValues = {
   name: '',
   email: '',
-  phone: '',
-  exhibitionId: '',
 }
 
 const INITIAL_ASSIGNMENT_FORM_VALUES: AssignmentFormValues = {
@@ -52,11 +50,14 @@ function formatAssignedExhibitions(admin: PlatformAdminSummary, exhibitionTitles
 export default function PlatformAdminsPage() {
   const adminsQuery = usePlatformAdmins()
   const exhibitionsQuery = usePlatformExhibitions()
-  const createAdmin = useCreatePlatformAdmin()
+  const inviteAdmin = useInvitePlatformAdmin()
+  const resendInvite = useResendPlatformInvite()
   const assignAdmin = useAssignPlatformAdmin()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [formValues, setFormValues] = useState<AdminFormValues>(INITIAL_FORM_VALUES)
   const [formErrors, setFormErrors] = useState<AdminFormErrors>({})
+  const [lastInvited, setLastInvited] = useState<{ name: string; email: string } | null>(null)
+  const [lastResentId, setLastResentId] = useState<number | null>(null)
   const [selectedAdmin, setSelectedAdmin] = useState<PlatformAdminSummary | null>(null)
   const [assignmentValues, setAssignmentValues] = useState<AssignmentFormValues>(INITIAL_ASSIGNMENT_FORM_VALUES)
   const [assignmentErrors, setAssignmentErrors] = useState<AssignmentFormErrors>({})
@@ -73,18 +74,19 @@ export default function PlatformAdminsPage() {
   function resetCreateForm() {
     setFormValues(INITIAL_FORM_VALUES)
     setFormErrors({})
-    createAdmin.reset()
+    inviteAdmin.reset()
   }
 
   function handleOpenCreateForm() {
     resetCreateForm()
     resetAssignmentForm()
     setSelectedAdmin(null)
+    setLastInvited(null)
     setIsFormOpen(true)
   }
 
   function handleCancelCreateForm() {
-    if (createAdmin.isPending) {
+    if (inviteAdmin.isPending) {
       return
     }
 
@@ -107,10 +109,6 @@ export default function PlatformAdminsPage() {
       errors.email = '올바른 이메일 형식으로 입력해 주세요.'
     }
 
-    if (!formValues.exhibitionId) {
-      errors.exhibitionId = '담당 행사를 선택해 주세요.'
-    }
-
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -122,20 +120,26 @@ export default function PlatformAdminsPage() {
       return
     }
 
-    createAdmin.mutate(
-      {
-        name: formValues.name.trim(),
-        email: formValues.email.trim(),
-        phone: formValues.phone.trim() || null,
-        exhibitionId: Number(formValues.exhibitionId),
-      },
+    const name = formValues.name.trim()
+    const email = formValues.email.trim()
+
+    inviteAdmin.mutate(
+      { name, email },
       {
         onSuccess: () => {
           resetCreateForm()
           setIsFormOpen(false)
+          setLastInvited({ name, email })
         },
       },
     )
+  }
+
+  function handleResendInvite(admin: PlatformAdminSummary) {
+    setLastResentId(null)
+    resendInvite.mutate(admin.id, {
+      onSuccess: () => setLastResentId(admin.id),
+    })
   }
 
   function resetAssignmentForm() {
@@ -229,29 +233,33 @@ export default function PlatformAdminsPage() {
     {
       key: 'active',
       header: '상태',
-      render: (admin) => (
-        <span
-          className={[
-            'inline-flex rounded-full px-2 py-1 text-xs font-semibold',
-            admin.isActive ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted',
-          ].join(' ')}
-        >
-          {admin.isActive ? '활성' : '비활성'}
-        </span>
-      ),
+      render: (admin) => <AccountStatusBadge status={admin.accountStatus} />,
     },
     {
       key: 'actions',
       header: '관리',
       render: (admin) => (
-        <button
-          type="button"
-          disabled={assignAdmin.isPending}
-          onClick={() => handleOpenAssignmentForm(admin)}
-          className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:border-primary hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
-        >
-          배정 관리
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={assignAdmin.isPending}
+            onClick={() => handleOpenAssignmentForm(admin)}
+            className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:border-primary hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            배정 관리
+          </button>
+          {admin.accountStatus === 'INVITED' && (
+            <button
+              type="button"
+              disabled={resendInvite.isPending}
+              onClick={() => handleResendInvite(admin)}
+              title="초대 메일을 다시 보냅니다. 기존 링크는 사용할 수 없게 됩니다."
+              className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {lastResentId === admin.id ? '재발송 완료' : '초대 재발송'}
+            </button>
+          )}
+        </div>
       ),
     },
   ]
@@ -262,7 +270,7 @@ export default function PlatformAdminsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">EXPO_ADMIN 관리</h1>
           <p className="mt-2 text-sm text-muted">
-            박람회 운영 관리자 계정을 발급하고 행사에 배정합니다.
+            박람회 운영 관리자를 이메일로 초대하고 행사에 배정합니다.
           </p>
         </div>
         <div className="flex flex-col items-start gap-2 md:items-end">
@@ -271,27 +279,35 @@ export default function PlatformAdminsPage() {
             onClick={handleOpenCreateForm}
             className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            관리자 발급
+            관리자 초대
           </button>
         </div>
       </div>
 
+      {lastInvited && (
+        <div className="border border-success/30 bg-success/5 px-3 py-2 text-sm font-semibold text-success">
+          {lastInvited.name}님({lastInvited.email})에게 초대 메일을 보냈습니다. 링크에서 비밀번호를 설정하면 계정이
+          활성화됩니다.
+        </div>
+      )}
+
       {isFormOpen && (
         <form onSubmit={handleSubmitCreateForm} className="border border-line bg-surface p-5">
           <div className="mb-5">
-            <h2 className="text-lg font-extrabold text-ink">EXPO_ADMIN 발급</h2>
+            <h2 className="text-lg font-extrabold text-ink">EXPO_ADMIN 초대</h2>
             <p className="mt-1 text-sm text-muted">
-              행사 운영 관리자가 사용할 계정을 생성하고 담당 행사를 배정합니다.
+              초대 메일의 링크로 본인이 직접 비밀번호를 설정하면 계정이 활성화됩니다. 담당 행사는 초대 후 목록의
+              "배정 관리"에서 배정합니다.
             </p>
           </div>
 
-          {createAdmin.isError && (
+          {inviteAdmin.isError && (
             <div className="mb-4 border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-semibold text-danger">
-              관리자 발급에 실패했습니다.
+              {inviteAdmin.error instanceof Error ? inviteAdmin.error.message : '관리자 초대에 실패했습니다.'}
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <Field label="이름" id="platform-admin-name" required error={formErrors.name}>
               <input
                 id="platform-admin-name"
@@ -300,7 +316,7 @@ export default function PlatformAdminsPage() {
                   setFormValues((prev) => ({ ...prev, name: event.target.value }))
                   setFormErrors((prev) => ({ ...prev, name: undefined }))
                 }}
-                disabled={createAdmin.isPending}
+                disabled={inviteAdmin.isPending}
                 className={[fieldControlClass, formErrors.name ? fieldControlErrorClass : ''].join(' ')}
               />
             </Field>
@@ -314,52 +330,16 @@ export default function PlatformAdminsPage() {
                   setFormValues((prev) => ({ ...prev, email: event.target.value }))
                   setFormErrors((prev) => ({ ...prev, email: undefined }))
                 }}
-                disabled={createAdmin.isPending}
+                disabled={inviteAdmin.isPending}
                 className={[fieldControlClass, formErrors.email ? fieldControlErrorClass : ''].join(' ')}
               />
-            </Field>
-
-            <Field label="연락처" id="platform-admin-phone" hint="선택 입력">
-              <input
-                id="platform-admin-phone"
-                value={formValues.phone}
-                onChange={(event) => setFormValues((prev) => ({ ...prev, phone: event.target.value }))}
-                disabled={createAdmin.isPending}
-                className={fieldControlClass}
-              />
-            </Field>
-
-            <Field
-              label="담당 행사"
-              id="platform-admin-exhibition"
-              required
-              error={formErrors.exhibitionId}
-              hint={exhibitionsQuery.isError ? '행사 목록을 불러오지 못했습니다.' : undefined}
-            >
-              <select
-                id="platform-admin-exhibition"
-                value={formValues.exhibitionId}
-                onChange={(event) => {
-                  setFormValues((prev) => ({ ...prev, exhibitionId: event.target.value }))
-                  setFormErrors((prev) => ({ ...prev, exhibitionId: undefined }))
-                }}
-                disabled={createAdmin.isPending || exhibitionsQuery.isLoading || exhibitionsQuery.isError}
-                className={[fieldControlClass, formErrors.exhibitionId ? fieldControlErrorClass : ''].join(' ')}
-              >
-                <option value="">담당 행사 선택</option>
-                {exhibitions.map((exhibition) => (
-                  <option key={exhibition.id} value={exhibition.id}>
-                    {exhibition.title} ({exhibition.status})
-                  </option>
-                ))}
-              </select>
             </Field>
           </div>
 
           <div className="mt-5 flex justify-end gap-2">
             <button
               type="button"
-              disabled={createAdmin.isPending}
+              disabled={inviteAdmin.isPending}
               onClick={handleCancelCreateForm}
               className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-white hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
             >
@@ -367,10 +347,10 @@ export default function PlatformAdminsPage() {
             </button>
             <button
               type="submit"
-              disabled={createAdmin.isPending || exhibitionsQuery.isLoading || exhibitionsQuery.isError}
+              disabled={inviteAdmin.isPending}
               className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-55"
             >
-              {createAdmin.isPending ? '발급 중...' : '발급'}
+              {inviteAdmin.isPending ? '발송 중...' : '초대 메일 발송'}
             </button>
           </div>
         </form>

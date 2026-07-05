@@ -37,12 +37,14 @@ export function ExhibitionFilterPanel({
   value,
   onApply,
   onClose,
+  onSearch,
   variant,
   applyMode,
 }: {
   value: ExhibitionFilterState
   onApply: (next: ExhibitionFilterState) => void
   onClose: () => void
+  onSearch: () => void
   variant: 'dropdown' | 'sheet'
   applyMode: 'batch' | 'immediate'
 }) {
@@ -107,24 +109,35 @@ export function ExhibitionFilterPanel({
     onClose()
   }
 
+  function handleSearchClick() {
+    onSearch()
+    onClose()
+  }
+
   const summary = buildSummaryText(draft)
 
   const content = (
     <div ref={containerRef} className={variant === 'dropdown' ? 'border border-line bg-white p-5 shadow-sm' : 'p-5'}>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-bold text-ink">상세필터</p>
           {summary && <p className="mt-0.5 text-xs text-muted">현재 조건: {summary}</p>}
         </div>
-        <button type="button" onClick={onClose} className="text-xs font-semibold text-muted transition-colors hover:text-ink">
-          닫기
-        </button>
+        {applyMode === 'immediate' && (
+          <button
+            type="button"
+            onClick={handleSearchClick}
+            className="flex h-9 shrink-0 items-center justify-center gap-1.5 bg-primary px-4 text-xs font-bold text-white transition-colors hover:bg-primary-hover"
+          >
+            선택 조건으로 검색
+          </button>
+        )}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
         <div>
           <p className="mb-2 text-xs font-semibold text-muted">관람일</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center gap-2">
             {DATE_PRESET_OPTIONS.map((preset) => (
               <button
                 key={preset.mode}
@@ -165,7 +178,7 @@ export function ExhibitionFilterPanel({
 
         <div className="lg:col-span-2">
           <p className="mb-2 text-xs font-semibold text-muted">상태</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center gap-2">
             {STATUS_FILTER_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -191,7 +204,7 @@ export function ExhibitionFilterPanel({
             onClick={handleApply}
             className="bg-primary px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-primary-hover"
           >
-            필터 적용
+            선택 조건으로 검색
           </button>
         </div>
       )}

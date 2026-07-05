@@ -250,6 +250,9 @@ export const platformUserSeed: User[] = [
     role: 'ACCOUNTANT',
     deletedAt: '2026-08-31T18:00:00',
   },
+  // 초대 수락 대기(INVITED) 시드 — lib/mock/inviteStore.ts의 demo 토큰과 이메일로 연결된다.
+  { id: 11, email: 'expo.invited@fairpilot.io', name: '한초대', phone: null, role: 'EXPO_ADMIN', deletedAt: null },
+  { id: 12, email: 'accounting.invited@fairpilot.io', name: '유대기', phone: null, role: 'ACCOUNTANT', deletedAt: null },
 ]
 
 export const platformExhibitionAdminSeed: ExhibitionAdmin[] = [

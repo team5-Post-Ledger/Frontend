@@ -172,6 +172,7 @@ export default function ExhibitionListPage() {
             value={filterState}
             onApply={handleApplyFilters}
             onClose={() => setPanelOpen(false)}
+            onSearch={() => setPanelOpen(false)}
             variant={isDesktop ? 'dropdown' : 'sheet'}
             applyMode={isDesktop ? 'batch' : 'immediate'}
           />

@@ -98,10 +98,6 @@ export default function HomePage() {
         <div className="mt-7 w-full lg:mt-8">
           <SearchCard />
         </div>
-
-        <Link to="/exhibitions" className="mt-3 text-xs font-semibold text-primary hover:text-primary-hover">
-          박람회 전체보기 →
-        </Link>
       </section>
 
       <section className="border-t border-line px-5 py-10 lg:px-8 lg:py-16">
@@ -111,10 +107,7 @@ export default function HomePage() {
               <div className="mb-2 font-mono text-[11px] uppercase tracking-[.14em] text-muted">추천 박람회</div>
               <h2 className="text-xl font-extrabold tracking-tight text-ink lg:text-[28px]">지금 둘러볼 만한 박람회</h2>
             </div>
-            <Link
-              to="/exhibitions"
-              className="hidden shrink-0 text-sm font-semibold text-primary hover:text-primary-hover sm:inline"
-            >
+            <Link to="/exhibitions" className="shrink-0 text-sm font-semibold text-primary hover:text-primary-hover">
               전체보기 →
             </Link>
           </div>

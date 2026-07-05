@@ -127,6 +127,7 @@ export function SearchCard() {
           value={filters}
           onApply={handleApplyFilters}
           onClose={() => setPanelOpen(false)}
+          onSearch={() => goToExhibitions(filters)}
           variant={isDesktop ? 'dropdown' : 'sheet'}
           applyMode={isDesktop ? 'batch' : 'immediate'}
         />
