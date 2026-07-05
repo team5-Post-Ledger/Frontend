@@ -1,5 +1,6 @@
 import type {
   AttendeeStatus,
+  CheckinMethod,
   CheckinStatus,
   MovementMode,
   PaymentStatus,
@@ -70,11 +71,25 @@ export interface CreatePaidReservationInput {
     isGroupLeader: boolean
   }>
   amount: number
+  pgProvider: PgProvider
   exhibitionTitle: string
   exhibitionVenue: string
   slotLabel: string
   ticketTypeName: string
   unitPrice: number
+}
+
+export interface MockCheckinLogRecord {
+  id: number
+  reservationId: number
+  attendeeId: number
+  attendeeName: string
+  nameTagId: number | null
+  nameTagToken: string | null
+  checkinMethod: CheckinMethod
+  checkedInByUserId: number
+  checkedInAt: string
+  memo: string | null
 }
 
 export interface CreateWalkInReservationInput {
@@ -345,6 +360,42 @@ const payments: MockPaymentRecord[] = [
   },
 ]
 
+// checkin_log(§5.4) 공유 저장소. 체크인 처리(lib/api/checkin.ts)와 예약 상세 타임라인
+// (lib/api/reservations.ts)이 같은 기록을 봐야 하는데, 둘을 직접 연결하면
+// reservations → checkin → nameTags → reservations 순환 import가 생겨 여기에 둔다.
+// 시드 2건은 reservations.ts 정적 시드 예약(479·481)의 checkinLogs와 같은 사건이므로,
+// 예약 상세 병합은 런타임 생성분(id >= RUNTIME_CHECKIN_LOG_START_ID)만 대상으로 한다.
+const checkinLogs: MockCheckinLogRecord[] = [
+  { id: 1, reservationId: 479, attendeeId: 1, attendeeName: '김도현', nameTagId: 13, nameTagToken: 'b2d5f8a1-0013-4b22-9c00-bb0000000013', checkinMethod: 'QR_SELF', checkedInByUserId: 1, checkedInAt: '2026-07-14T09:55:00', memo: null },
+  { id: 2, reservationId: 481, attendeeId: 6, attendeeName: '박상우', nameTagId: 15, nameTagToken: 'b2d5f8a1-0015-4b22-9c00-bb0000000015', checkinMethod: 'QR_SELF', checkedInByUserId: 1, checkedInAt: '2026-07-14T12:52:00', memo: null },
+]
+
+const RUNTIME_CHECKIN_LOG_START_ID = 1000
+let nextCheckinLogId = RUNTIME_CHECKIN_LOG_START_ID
+
+export function appendMockCheckinLog(
+  input: Omit<MockCheckinLogRecord, 'id' | 'checkedInAt'> & { checkedInAt?: string },
+): MockCheckinLogRecord {
+  const log: MockCheckinLogRecord = {
+    ...input,
+    id: nextCheckinLogId++,
+    checkedInAt: input.checkedInAt ?? new Date().toISOString(),
+  }
+  checkinLogs.unshift(log)
+  return log
+}
+
+export function getMockCheckinLogs(): MockCheckinLogRecord[] {
+  return checkinLogs
+}
+
+export function getRuntimeCheckinLogsByReservationId(reservationId: number): MockCheckinLogRecord[] {
+  return checkinLogs
+    .filter((log) => log.reservationId === reservationId && log.id >= RUNTIME_CHECKIN_LOG_START_ID)
+    .slice()
+    .sort((a, b) => a.checkedInAt.localeCompare(b.checkedInAt))
+}
+
 function makeTicketQrToken(reservationId: number, attendeeId: number): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return `TICKET-${crypto.randomUUID()}`
@@ -428,7 +479,7 @@ export function createPaidReservation(input: CreatePaidReservationInput): {
   const payment: MockPaymentRecord = {
     id: nextPaymentId++,
     reservationId,
-    pgProvider: 'MOCK_PG',
+    pgProvider: input.pgProvider,
     pgTxId: `MOCK-${Date.now()}`,
     amount: input.amount,
     feeAmount: 0,

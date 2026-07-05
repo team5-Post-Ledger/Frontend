@@ -1,12 +1,15 @@
 import type { CheckinMethod, CheckinStatus, MovementMode } from '../../types'
 import { mockDelay } from './mockClient'
 import {
+  appendMockCheckinLog,
   checkInReservationAttendeeRecord,
   createOnsitePaymentForReservation,
   createWalkInReservationRecord,
+  getMockCheckinLogs,
   getMockReservationAttendees,
   getMockReservations,
   getReservationCheckinStatus as getMockCheckinStatus,
+  type MockCheckinLogRecord,
 } from './mockDb'
 
 export type { AttendeeCheckinStatusRow, ReservationCheckinStatus } from './mockDb'
@@ -303,37 +306,40 @@ export interface CheckinLogView {
   memo: string | null
 }
 
-let mockCheckinLogs: CheckinLogView[] = [
-  { id: 1, attendeeId: 1, attendeeName: '김도현', nameTagId: 13, checkinMethod: 'QR_SELF', checkedInAt: '2026-07-14T09:55:00', memo: null },
-  { id: 2, attendeeId: 6, attendeeName: '박상우', nameTagId: 15, checkinMethod: 'QR_SELF', checkedInAt: '2026-07-14T12:52:00', memo: null },
-]
-let nextCheckinLogId = 3
+// 로그 원본은 mockDb의 공유 checkin_log 저장소다(예약 상세 타임라인과 동일 기록을 공유).
+// 이 화면군(최근 체크인 로그 패널)이 쓰는 필드만 추려 기존 뷰 모양을 유지한다.
+function toCheckinLogView(record: MockCheckinLogRecord): CheckinLogView {
+  return {
+    id: record.id,
+    attendeeId: record.attendeeId,
+    attendeeName: record.attendeeName,
+    nameTagId: record.nameTagId,
+    checkinMethod: record.checkinMethod,
+    checkedInAt: record.checkedInAt,
+    memo: record.memo,
+  }
+}
 
 function appendCheckinLog(input: {
   attendeeId: number
   attendeeName: string
+  reservationId: number
   nameTagId: number | null
+  nameTagToken: string | null
   checkinMethod: CheckinMethod
   memo: string | null
 }): CheckinLogView {
-  const log: CheckinLogView = {
-    id: nextCheckinLogId++,
-    attendeeId: input.attendeeId,
-    attendeeName: input.attendeeName,
-    nameTagId: input.nameTagId,
-    checkinMethod: input.checkinMethod,
-    checkedInAt: new Date().toISOString(),
-    memo: input.memo,
-  }
-  mockCheckinLogs = [log, ...mockCheckinLogs]
-  return log
+  return toCheckinLogView(appendMockCheckinLog({ ...input, checkedInByUserId: CURRENT_STAFF_USER_ID }))
 }
 
 export async function getCheckinLogs(limit = 10, exhibitionId?: number): Promise<CheckinLogView[]> {
-  const logs =
-    exhibitionId === undefined
-      ? mockCheckinLogs
-      : mockCheckinLogs.filter((log) => findCheckinAttendeeById(log.attendeeId, undefined, exhibitionId)?.exhibitionId === exhibitionId)
+  const logs = getMockCheckinLogs()
+    .filter(
+      (log) =>
+        exhibitionId === undefined ||
+        findCheckinAttendeeById(log.attendeeId, undefined, exhibitionId)?.exhibitionId === exhibitionId,
+    )
+    .map(toCheckinLogView)
   return mockDelay(logs.slice(0, limit))
 }
 
@@ -417,7 +423,9 @@ export async function bindNameTag(attendeeId: number, nameTagToken: string, opti
     const log = appendCheckinLog({
       attendeeId,
       attendeeName,
+      reservationId: attendee.reservationId,
       nameTagId: tag.id,
+      nameTagToken: tag.token,
       checkinMethod: firstBindMethod,
       memo: combineMemo('이미 바인딩된 태그 재스캔 — 멱등 처리', options.memo),
     })
@@ -440,7 +448,9 @@ export async function bindNameTag(attendeeId: number, nameTagToken: string, opti
   const log = appendCheckinLog({
     attendeeId,
     attendeeName,
+    reservationId: attendee.reservationId,
     nameTagId: boundTag.id,
+    nameTagToken: boundTag.token,
     checkinMethod,
     memo: combineMemo(isReissue ? '분실/교환으로 인한 재바인딩 — 이전 태그 REVOKED' : null, options.memo),
   })

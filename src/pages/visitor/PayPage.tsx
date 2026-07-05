@@ -3,11 +3,9 @@ import { useNavigate } from 'react-router'
 import { useSubmitPayment } from '../../features/payment/hooks'
 import { useExhibition } from '../../features/exhibition/hooks'
 import { useTicketTypes } from '../../features/ticketType/hooks'
-import type { PaymentSubmissionResult } from '../../lib/api/payments'
+import type { PaymentMethod, PaymentSubmissionResult } from '../../lib/api/payments'
 import { formatCurrency } from '../../lib/format'
 import { useReserveStore } from '../../stores/reserveStore'
-
-type PaymentMethod = 'card' | 'transfer' | 'easy'
 
 const PAYMENT_METHODS: Array<{ id: PaymentMethod; label: string }> = [
   { id: 'card', label: '신용·체크카드' },
@@ -72,6 +70,7 @@ export default function PayPage() {
           isGroupLeader: attendee.isGroupLeader,
         })),
         amount,
+        paymentMethod,
       },
       { onSuccess: setResult },
     )

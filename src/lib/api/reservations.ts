@@ -13,6 +13,8 @@ import {
   getMockPaymentByReservationId,
   getMockReservationAttendees,
   getMockReservations,
+  getRuntimeCheckinLogsByReservationId,
+  type MockCheckinLogRecord,
   type MockReservationAttendeeRecord,
   type MockReservationRecord,
 } from './mockDb'
@@ -373,6 +375,23 @@ const MOCK_RESERVATIONS: ReservationListItem[] = [
   },
 ]
 
+// mockDb 공유 checkin_log 레코드를 이 화면군의 로그 뷰로 변환한다. checked_in_by_user_id는
+// 목 전체에서 단일 운영 계정(id=1)이므로 표시 이름도 CHECKIN_PROCESSOR_NAME으로 고정한다.
+function toCheckinLogView(record: MockCheckinLogRecord): CheckinLogView {
+  return {
+    id: record.id,
+    checkinMethod: record.checkinMethod,
+    nameTagToken: record.nameTagToken,
+    processedByName: CHECKIN_PROCESSOR_NAME,
+    checkedInAt: record.checkedInAt,
+    memo: record.memo,
+  }
+}
+
+function getRuntimeCheckinLogViews(reservationId: number): CheckinLogView[] {
+  return getRuntimeCheckinLogsByReservationId(reservationId).map(toCheckinLogView)
+}
+
 function toReservationAttendeeView(attendee: MockReservationAttendeeRecord): ReservationAttendeeView {
   return {
     id: attendee.id,
@@ -414,12 +433,16 @@ function toReservationListItem(reservation: MockReservationRecord): ReservationL
         }
       : null,
     attendees: attendees.map(toReservationAttendeeView),
-    checkinLogs: [],
+    checkinLogs: getRuntimeCheckinLogViews(reservation.id),
   }
 }
 
 function getReservationItems(exhibitionId?: number): ReservationListItem[] {
-  const seedReservations = exhibitionId === undefined || exhibitionId === ADMIN_SEED_EXHIBITION_ID ? MOCK_RESERVATIONS : []
+  // 체크인 데모 대상(checkin.ts mockCheckinAttendees)이 시드 예약(480·481·484 등)을 가리키므로,
+  // 런타임에 체크인하면 그 로그가 시드 예약 상세에도 이어 붙어야 한다.
+  const seedReservations = (exhibitionId === undefined || exhibitionId === ADMIN_SEED_EXHIBITION_ID ? MOCK_RESERVATIONS : []).map(
+    (item) => ({ ...item, checkinLogs: [...item.checkinLogs, ...getRuntimeCheckinLogViews(item.id)] }),
+  )
   const sharedReservations = getMockReservations()
     .filter((reservation) => reservation.deletedAt === null)
     .filter((reservation) => exhibitionId === undefined || reservation.exhibitionId === exhibitionId)

@@ -14,6 +14,16 @@ export interface PaymentAttendeeInput {
   isGroupLeader: boolean
 }
 
+export type PaymentMethod = 'card' | 'transfer' | 'easy'
+
+// payment.pg_provider(§5)는 자유 문자열이라, 사용자가 고른 결제 수단을 시드와 같은
+// 한국어 라벨('신용카드(국민)' 식 표기)로 기록한다. 실제 PG 연동 시 PG사 응답 값으로 대체된다.
+const PAYMENT_METHOD_PG_LABELS: Record<PaymentMethod, string> = {
+  card: '신용·체크카드',
+  transfer: '계좌이체',
+  easy: '간편결제',
+}
+
 export interface PaymentSubmissionInput {
   exhibitionId: number
   timeSlotId: number
@@ -22,6 +32,7 @@ export interface PaymentSubmissionInput {
   groupSize: number
   attendees: PaymentAttendeeInput[]
   amount: number
+  paymentMethod: PaymentMethod
 }
 
 export interface PaymentSubmissionResult {
@@ -68,6 +79,7 @@ export async function submitPayment(input: PaymentSubmissionInput): Promise<Paym
     groupSize: input.groupSize,
     attendees: input.attendees,
     amount: input.amount,
+    pgProvider: PAYMENT_METHOD_PG_LABELS[input.paymentMethod],
     exhibitionTitle: exhibition?.title ?? '박람회',
     exhibitionVenue: exhibition?.venue ?? '-',
     slotLabel: timeSlot ? formatSlotRange(timeSlot.startAt, timeSlot.endAt) : '-',
