@@ -4,7 +4,13 @@ import { CongestionLivePanel } from '../../components/CongestionLivePanel'
 import { Panel } from '../../components/Panel'
 import { QueryState } from '../../components/QueryState'
 import { StatCard } from '../../components/StatCard'
+import {
+  CONGESTION_EMPTY_MESSAGE,
+  congestionUnavailableMessage,
+  getCongestionAvailability,
+} from '../../features/congestion/availability'
 import { useCongestionLive } from '../../features/congestion/hooks'
+import { useCurrentExhibition } from '../../features/exhibition/hooks'
 import { useStatsSummary, useTopBooths, useVisitTrend } from '../../features/stats/hooks'
 import { useCurrentExhibitionStore } from '../../stores/currentExhibitionStore'
 
@@ -39,7 +45,14 @@ export default function StatsDashboardPage() {
   const summary = useStatsSummary(exhibitionId)
   const visitTrend = useVisitTrend(exhibitionId)
   const topBooths = useTopBooths(exhibitionId)
-  const congestion = useCongestionLive(exhibitionId)
+  // 진행중 행사에만 실시간 혼잡도가 존재한다 — 행사 정보를 조회해 판정하고, 아니면 폴링을 끈다.
+  const exhibition = useCurrentExhibition()
+  const congestionAvailability = exhibition.data ? getCongestionAvailability(exhibition.data) : null
+  const congestionUnavailable =
+    exhibition.data && congestionAvailability && congestionAvailability !== 'LIVE'
+      ? congestionUnavailableMessage(congestionAvailability, exhibition.data.startDate)
+      : null
+  const congestion = useCongestionLive(exhibitionId, { enabled: congestionAvailability === 'LIVE' })
 
   const conversionRate = summary.data && summary.data.paidHeadcount > 0
     ? Math.round((summary.data.checkedInHeadcount / summary.data.paidHeadcount) * 100)
@@ -110,8 +123,23 @@ export default function StatsDashboardPage() {
           )}
         </StatCard>
 
-        <StatCard label="현재 혼잡도" isLoading={congestion.isLoading} isError={congestion.isError}>
-          {congestion.data && <CongestionGauge level={congestion.data.level} />}
+        <StatCard
+          label="현재 혼잡도"
+          isLoading={exhibition.isLoading || congestion.isLoading}
+          isError={exhibition.isError || congestion.isError}
+        >
+          {congestionAvailability === 'LIVE' ? (
+            congestion.data &&
+            (congestion.data.level !== null ? (
+              <CongestionGauge level={congestion.data.level} />
+            ) : (
+              <p className="text-xs leading-relaxed text-muted">{CONGESTION_EMPTY_MESSAGE}</p>
+            ))
+          ) : (
+            <p className="text-xs leading-relaxed text-muted">
+              {congestionUnavailable ?? '행사를 선택하면 실시간 혼잡도를 보여드려요.'}
+            </p>
+          )}
         </StatCard>
       </div>
 
@@ -153,7 +181,16 @@ export default function StatsDashboardPage() {
         </Panel>
       </div>
 
-      <CongestionLivePanel isLoading={congestion.isLoading} isError={congestion.isError} data={congestion.data} />
+      <CongestionLivePanel
+        isLoading={congestion.isLoading}
+        isError={congestion.isError}
+        data={congestion.data}
+        unavailableMessage={
+          congestionAvailability === 'LIVE'
+            ? undefined
+            : congestionUnavailable ?? '행사를 선택하면 실시간 혼잡도를 보여드려요.'
+        }
+      />
     </div>
   )
 }

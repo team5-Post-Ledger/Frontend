@@ -27,7 +27,7 @@ export const platformExhibitionSeed: Exhibition[] = [
     address: '서울특별시 강남구 영동대로 513',
     floorMapMeta: null,
     startDate: '2026-06-29',
-    endDate: '2026-07-05',
+    endDate: '2026-07-09',
     status: 'OPEN',
     enforceStaffQualification: true,
     createdBy: 1,

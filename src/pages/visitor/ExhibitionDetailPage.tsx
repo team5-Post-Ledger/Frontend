@@ -4,6 +4,11 @@ import { CongestionGauge } from '../../components/CongestionGauge'
 import { DetailLayout } from '../../components/DetailLayout'
 import { QueryState } from '../../components/QueryState'
 import { useBoothCategories, useBoothsByExhibition } from '../../features/booth/hooks'
+import {
+  CONGESTION_EMPTY_MESSAGE,
+  congestionUnavailableMessage,
+  getCongestionAvailability,
+} from '../../features/congestion/availability'
 import { useCongestionLive } from '../../features/congestion/hooks'
 import { getExhibitionDisplayStatus } from '../../features/exhibition/displayStatus'
 import { useExhibition } from '../../features/exhibition/hooks'
@@ -56,7 +61,9 @@ export default function ExhibitionDetailPage() {
   const booths = useBoothsByExhibition(exhibitionId)
   const categories = useBoothCategories(exhibitionId)
   const sessions = useSessions(exhibitionId)
-  const congestion = useCongestionLive(exhibitionId)
+  // 진행중 행사에만 실시간 혼잡도가 존재한다 — 시작 전/종료면 쿼리(5초 폴링)를 아예 켜지 않는다.
+  const congestionEnabled = exhibition.data ? getCongestionAvailability(exhibition.data) === 'LIVE' : false
+  const congestion = useCongestionLive(exhibitionId, { enabled: congestionEnabled })
 
   const [categoryFilter, setCategoryFilter] = useState<number | 'ALL'>('ALL')
 
@@ -98,6 +105,7 @@ export default function ExhibitionDetailPage() {
 
   const data = exhibition.data
   const status = getExhibitionDisplayStatus(data)
+  const congestionAvailability = getCongestionAvailability(data)
   const boothCount = booths.data?.length ?? 0
   const sessionCount = sessions.data?.length ?? 0
 
@@ -127,16 +135,29 @@ export default function ExhibitionDetailPage() {
             <div className="border border-line bg-white p-4">
               <div className="mb-1 flex items-center justify-between gap-2">
                 <span className="text-xs text-muted">실시간 혼잡도</span>
-                <Link
-                  to={`/exhibitions/${exhibitionId}/congestion`}
-                  className="text-xs font-semibold text-primary hover:text-primary-hover"
-                >
-                  지도로 보기 →
-                </Link>
+                {congestionAvailability === 'LIVE' && (
+                  <Link
+                    to={`/exhibitions/${exhibitionId}/congestion`}
+                    className="text-xs font-semibold text-primary hover:text-primary-hover"
+                  >
+                    지도로 보기 →
+                  </Link>
+                )}
               </div>
-              <QueryState isLoading={congestion.isLoading} isError={congestion.isError} height={56}>
-                {congestion.data && <CongestionGauge level={congestion.data.level} />}
-              </QueryState>
+              {congestionAvailability === 'LIVE' ? (
+                <QueryState isLoading={congestion.isLoading} isError={congestion.isError} height={56}>
+                  {congestion.data &&
+                    (congestion.data.level !== null ? (
+                      <CongestionGauge level={congestion.data.level} />
+                    ) : (
+                      <p className="flex h-14 items-center text-sm text-muted">{CONGESTION_EMPTY_MESSAGE}</p>
+                    ))}
+                </QueryState>
+              ) : (
+                <p className="flex h-14 items-center text-sm leading-relaxed text-muted">
+                  {congestionUnavailableMessage(congestionAvailability, data.startDate)}
+                </p>
+              )}
             </div>
 
             <div>

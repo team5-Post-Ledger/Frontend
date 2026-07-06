@@ -6,7 +6,8 @@ import { computeFloorPlacements } from '../../components/floorMapPlacement'
 import { QueryState } from '../../components/QueryState'
 import { getBoothFootprint } from '../../features/booth/floorLayout'
 import { useBoothsByExhibition } from '../../features/booth/hooks'
-import type { CongestionPointLevel } from '../../features/congestion/api'
+import { CONGESTION_LEVEL_LABEL, type CongestionPointLevel } from '../../features/congestion/api'
+import { congestionUnavailableMessage, getCongestionAvailability } from '../../features/congestion/availability'
 import { useCongestionLive } from '../../features/congestion/hooks'
 import { useExhibition } from '../../features/exhibition/hooks'
 import { RouteCreatePanel } from '../../features/route/RouteCreatePanel'
@@ -16,13 +17,6 @@ import { formatDateTime } from '../../lib/format'
 import type { Booth } from '../../types'
 
 const ZOOM_STEPS = [1, 1.5, 2]
-
-const LEVEL_LABEL: Record<CongestionPointLevel, string> = {
-  LOW: '여유',
-  MEDIUM: '보통',
-  HIGH: '혼잡',
-  FULL: '포화',
-}
 
 // 부스 클릭 패널의 짧은 안내 문장(task-map-fix2/feature.md §9-3) — 예상대기/평균체류 같은 수치는
 // mock에 없는 값을 지어내는 것("가짜 정밀도")이라 넣지 않고, 이미 아는 레벨 정보만으로 만든 문장이다.
@@ -209,7 +203,7 @@ function BoothDetailOverlay({
   point: CongestionPointInfo | undefined
   onClose: () => void
 }) {
-  const label = point ? LEVEL_LABEL[point.level] : '데이터 없음'
+  const label = point ? CONGESTION_LEVEL_LABEL[point.level] : '데이터 없음'
   const chipClass = point ? LEVEL_BOX_CLASS[point.level] : NO_DATA_BOX_CLASS
   const description = point ? LEVEL_DESCRIPTION[point.level] : NO_DATA_DESCRIPTION
   return (
@@ -316,7 +310,14 @@ export default function ExhibitionCongestionPage() {
 
   const exhibition = useExhibition(exhibitionId)
   const booths = useBoothsByExhibition(exhibitionId)
-  const congestion = useCongestionLive(exhibitionId ?? undefined)
+  // 진행중 행사에만 실시간 혼잡도가 존재한다 — 시작 전/종료면 폴링을 켜지 않고 도면만 보여준다
+  // (부스 배치는 방문 전에도 볼 가치가 있고, AI 동선 탭도 계속 쓸 수 있어야 한다).
+  const congestionAvailability = exhibition.data ? getCongestionAvailability(exhibition.data) : null
+  const congestionNotice =
+    exhibition.data && congestionAvailability && congestionAvailability !== 'LIVE'
+      ? congestionUnavailableMessage(congestionAvailability, exhibition.data.startDate)
+      : null
+  const congestion = useCongestionLive(exhibitionId ?? undefined, { enabled: congestionAvailability === 'LIVE' })
 
   const floors = useMemo(() => {
     const data = booths.data ?? []
@@ -528,13 +529,19 @@ export default function ExhibitionCongestionPage() {
               )}
             </div>
 
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <CongestionLegend />
-              <span className="flex shrink-0 items-center gap-1.5 bg-surface px-2.5 py-1 text-[11px] font-bold text-ink">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-live" />
-                LIVE
-              </span>
-            </div>
+            {congestionNotice !== null ? (
+              <p className="mb-3 border border-line bg-surface px-3 py-2 text-xs leading-relaxed text-muted">
+                {congestionNotice}
+              </p>
+            ) : (
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <CongestionLegend />
+                <span className="flex shrink-0 items-center gap-1.5 bg-surface px-2.5 py-1 text-[11px] font-bold text-ink">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-live" />
+                  LIVE
+                </span>
+              </div>
+            )}
 
             {/* 우측 하단 오버레이 패널의 고정 기준점 — 안쪽 스크롤/줌 콘텐츠 바깥에 둬서 팬 중에도
                 화면 모서리에 그대로 떠 있게 한다(부스 클릭 오버레이는 지도 "뷰포트" 기준, task-map-fix). */}

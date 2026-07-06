@@ -1,9 +1,15 @@
 import { mockDelay } from '../../lib/api/mockClient'
 
-export type CongestionLevel = '여유' | '보통' | '혼잡'
-
-/** 서버 CongestionLevel과 동일한 4단계(§3.3). 화면 표시는 여유/보통/혼잡/포화로 매핑한다. */
+/** 서버 CongestionLevel과 동일한 4단계(§3.3). 종합 레벨·부스별 레벨 모두 이 enum을 쓴다. */
 export type CongestionPointLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'FULL'
+
+/** 화면 표시 라벨 — 게이지·지도·패널이 전부 이 맵 하나를 쓴다(중복 정의 금지). */
+export const CONGESTION_LEVEL_LABEL: Record<CongestionPointLevel, string> = {
+  LOW: '여유',
+  MEDIUM: '보통',
+  HIGH: '혼잡',
+  FULL: '포화',
+}
 
 export interface CongestionPoint {
   type: 'BOOTH' | 'SESSION'
@@ -14,7 +20,8 @@ export interface CongestionPoint {
 }
 
 export interface CongestionSnapshot {
-  level: CongestionLevel
+  /** 종합 레벨. null = 집계된 포인트가 없어 종합을 낼 수 없음(화면은 "데이터 없음"으로 처리). */
+  level: CongestionPointLevel | null
   points: CongestionPoint[]
   ts: string
 }
@@ -68,17 +75,32 @@ const POINTS_BY_EXHIBITION_ID: Record<number, CongestionPointSeed[]> = {
   3: EXHIBITION_3_POINTS,
 }
 
+// 종합 레벨(mock 전용 규칙, 튜닝 대상) — 혼잡(HIGH) 이상 부스의 비율로 판정해 박람회마다 다른
+// 값이 나오게 한다(전부 '보통' 하드코딩이던 결함 수정). 실서버가 자체 종합 레벨을 내려주면
+// 이 파생은 어댑터에서 서버 값으로 교체된다.
+function deriveOverallLevel(points: CongestionPoint[]): CongestionPointLevel | null {
+  const booths = points.filter((point) => point.type === 'BOOTH')
+  if (booths.length === 0) return null
+
+  const busyRatio = booths.filter((point) => point.level === 'HIGH' || point.level === 'FULL').length / booths.length
+  if (busyRatio >= 0.5) return 'FULL'
+  if (busyRatio >= 0.25) return 'HIGH'
+  return booths.some((point) => point.level !== 'LOW') ? 'MEDIUM' : 'LOW'
+}
+
 export async function getCongestionLive(exhibitionId?: number): Promise<CongestionSnapshot> {
   const jitter = () => Math.floor(Math.random() * 7) - 3
   const seeds = exhibitionId === undefined ? EXHIBITION_1_POINTS : POINTS_BY_EXHIBITION_ID[exhibitionId] ?? []
 
+  const points = seeds.map((seed) => {
+    const count = Math.max(0, seed.count + jitter())
+    return { ...seed, count, level: deriveLevel(count) }
+  })
+
   return mockDelay(
     {
-      level: '보통',
-      points: seeds.map((seed) => {
-        const count = Math.max(0, seed.count + jitter())
-        return { ...seed, count, level: deriveLevel(count) }
-      }),
+      level: deriveOverallLevel(points),
+      points,
       ts: new Date().toISOString(),
     },
     250,

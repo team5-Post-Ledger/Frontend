@@ -5,6 +5,11 @@ import { CongestionLivePanel } from '../../components/CongestionLivePanel'
 import { Panel } from '../../components/Panel'
 import { QueryState } from '../../components/QueryState'
 import { StatCard } from '../../components/StatCard'
+import {
+  CONGESTION_EMPTY_MESSAGE,
+  congestionUnavailableMessage,
+  getCongestionAvailability,
+} from '../../features/congestion/availability'
 import { useCongestionLive } from '../../features/congestion/hooks'
 import { useExhibitionCheckinTrend, useExhibitionOperationsSummary } from '../../features/exhibitionDashboard/hooks'
 import { useExhibition } from '../../features/exhibition/hooks'
@@ -58,7 +63,9 @@ export default function ExhibitionDashboardPage() {
   const exhibition = useExhibition(exhibitionId)
   const summary = useExhibitionOperationsSummary(exhibitionId)
   const trend = useExhibitionCheckinTrend(exhibitionId)
-  const congestion = useCongestionLive(exhibitionId)
+  // 진행중 행사에만 실시간 혼잡도가 존재한다 — 준비중/기간 외/종료면 폴링을 켜지 않는다.
+  const congestionEnabled = exhibition.data ? getCongestionAvailability(exhibition.data) === 'LIVE' : false
+  const congestion = useCongestionLive(exhibitionId, { enabled: congestionEnabled })
 
   if (exhibitionId === null) {
     return <p className="text-sm text-danger">잘못된 행사 경로입니다.</p>
@@ -77,6 +84,7 @@ export default function ExhibitionDashboardPage() {
   }
 
   const data = exhibition.data
+  const congestionAvailability = getCongestionAvailability(data)
   const conversionRate =
     summary.data && summary.data.paidHeadcount > 0
       ? Math.round((summary.data.checkedInHeadcount / summary.data.paidHeadcount) * 100)
@@ -144,7 +152,18 @@ export default function ExhibitionDashboardPage() {
         </StatCard>
 
         <StatCard label="현재 혼잡도" isLoading={congestion.isLoading} isError={congestion.isError}>
-          {congestion.data && <CongestionGauge level={congestion.data.level} />}
+          {congestionAvailability === 'LIVE' ? (
+            congestion.data &&
+            (congestion.data.level !== null ? (
+              <CongestionGauge level={congestion.data.level} />
+            ) : (
+              <p className="text-xs leading-relaxed text-muted">{CONGESTION_EMPTY_MESSAGE}</p>
+            ))
+          ) : (
+            <p className="text-xs leading-relaxed text-muted">
+              {congestionUnavailableMessage(congestionAvailability, data.startDate)}
+            </p>
+          )}
         </StatCard>
 
         <StatCard label="매출 요약" icon={<span className="text-primary"><RevenueIcon /></span>} isLoading={summary.isLoading} isError={summary.isError}>
@@ -206,7 +225,16 @@ export default function ExhibitionDashboardPage() {
         </Panel>
       </div>
 
-      <CongestionLivePanel isLoading={congestion.isLoading} isError={congestion.isError} data={congestion.data} />
+      <CongestionLivePanel
+        isLoading={congestion.isLoading}
+        isError={congestion.isError}
+        data={congestion.data}
+        unavailableMessage={
+          congestionAvailability !== 'LIVE'
+            ? congestionUnavailableMessage(congestionAvailability, data.startDate)
+            : undefined
+        }
+      />
     </div>
   )
 }

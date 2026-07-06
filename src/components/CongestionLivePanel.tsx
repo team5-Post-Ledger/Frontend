@@ -6,13 +6,33 @@ export function CongestionLivePanel({
   isLoading,
   isError,
   data,
+  unavailableMessage,
 }: {
   isLoading: boolean
   isError: boolean
   data?: CongestionSnapshot
+  /** 시작 전/종료 행사 등 실시간 수집 자체가 없는 상태 — 지정되면 목록 대신 이 문구만 보여준다. */
+  unavailableMessage?: string
 }) {
   const connected = !isLoading && !isError
   const updatedAt = data ? new Date(data.ts).toLocaleTimeString('ko-KR') : '-'
+
+  if (unavailableMessage) {
+    return (
+      <Panel
+        title="실시간 혼잡도 (SSE)"
+        subtitle="부스/세션별 현재 인원"
+        action={
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+            <span className="h-2 w-2 rounded-full bg-line" />
+            수집 대기
+          </div>
+        }
+      >
+        <p className="flex h-[88px] items-center justify-center text-sm text-muted">{unavailableMessage}</p>
+      </Panel>
+    )
+  }
 
   return (
     <Panel
