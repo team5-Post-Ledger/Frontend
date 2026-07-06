@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import { UserMenuPopover } from '../../components/UserMenuPopover'
 import { ROLE_HOME } from '../../hooks/usePostAuthRedirect'
 import { useAuthStore } from '../../stores/authStore'
 
@@ -145,18 +146,12 @@ export function VisitorLayout() {
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
-          {user && user.role !== 'VISITOR' && (
-            <Link
-              to={ROLE_HOME[user.role]}
-              className="text-xs font-semibold text-primary"
-            >
-              콘솔
-            </Link>
-          )}
           {user ? (
-            <span className="flex h-8 w-8 items-center justify-center bg-primary text-xs font-bold text-white">
-              {user.name.slice(0, 1)}
-            </span>
+            <UserMenuPopover
+              user={user}
+              consoleTo={user.role !== 'VISITOR' ? ROLE_HOME[user.role] : undefined}
+              onLogout={logout}
+            />
           ) : (
             <Link to="/login" className="text-sm font-semibold text-primary">
               로그인
