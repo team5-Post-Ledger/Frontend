@@ -1,5 +1,7 @@
 export type Role = 'PLATFORM_ADMIN' | 'EXPO_ADMIN' | 'EXHIBITOR' | 'VISITOR' | 'ACCOUNTANT' | 'STAFF'
 
+export type AccountStatus = 'INVITED' | 'ACTIVE'
+
 export type ExhibitionStatus = 'DRAFT' | 'OPEN' | 'CLOSED'
 
 export type ReservationStatus = 'PENDING' | 'PAID' | 'CANCELLED' | 'REFUNDED' | 'CHECKED_IN'
@@ -14,7 +16,18 @@ export type AttendeeStatus = 'ACTIVE' | 'CANCELLED' | 'NO_SHOW'
 
 export type PaymentStatus = 'READY' | 'PAID' | 'FAILED' | 'CANCELLED' | 'REFUNDED'
 
+export type PaymentGatewayProvider = 'TOSS' | 'PORTONE'
+
 export type PgProvider = string
+
+export type ApiErrorCode =
+  | 'BAD_REQUEST'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'VALIDATION_ERROR'
+  | 'INTERNAL_SERVER_ERROR'
 
 export type NameTagStatus = 'AVAILABLE' | 'ISSUED' | 'REVOKED'
 

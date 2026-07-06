@@ -2,6 +2,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Link, useParams } from 'react-router'
 import { CongestionGauge } from '../../components/CongestionGauge'
 import { CongestionLivePanel } from '../../components/CongestionLivePanel'
+import { HubNavGrid } from '../../components/HubNavGrid'
 import { Panel } from '../../components/Panel'
 import { QueryState } from '../../components/QueryState'
 import { StatCard } from '../../components/StatCard'
@@ -13,6 +14,7 @@ import {
 import { useCongestionLive } from '../../features/congestion/hooks'
 import { useExhibitionCheckinTrend, useExhibitionOperationsSummary } from '../../features/exhibitionDashboard/hooks'
 import { useExhibition } from '../../features/exhibition/hooks'
+import { getAdminHubGroups } from '../../app/layouts/adminNav'
 import { formatCurrency, formatDateRange } from '../../lib/format'
 import type { ExhibitionStatus } from '../../types'
 
@@ -177,6 +179,10 @@ export default function ExhibitionDashboardPage() {
           )}
         </StatCard>
       </div>
+
+      <Panel title="바로가기" subtitle="운영 화면으로 바로 이동합니다.">
+        <HubNavGrid groups={getAdminHubGroups(exhibitionId)} />
+      </Panel>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr]">
         <Panel title="시간대별 입장" subtitle="체크인(GATE ENTRY) 기준 · 1시간 단위">

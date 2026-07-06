@@ -1,4 +1,5 @@
 import type {
+  AccountStatus,
   AdSlotStatus,
   AdvertisementStatus,
   AttendeeStatus,
@@ -22,14 +23,24 @@ import type {
   StatScanPointType,
 } from './enums'
 
+export interface AuthUser {
+  id: number
+  email: string
+  name: string
+  phone: string | null
+  role: Role
+  accountStatus: AccountStatus
+  isDeleted: boolean
+  assignedExhibitionIds: number[]
+}
+
 export interface User {
   id: number
   email: string
   name: string
   phone: string | null
   role: Role
-  // TODO(연동): 백엔드는 이 필드가 deletedAt(string|null)이 아니라 isDeleted(boolean)이다.
-  // /me 연동 시점에 User만 isDeleted로 바꾼다 — 다른 엔티티의 deletedAt은 이 결정과 무관, 그대로 둔다.
+  // 플랫폼 계정 관리 화면의 view model이다. 인증 세션은 백엔드 /me 형태에 맞춘 AuthUser를 사용한다.
   deletedAt: string | null
 }
 

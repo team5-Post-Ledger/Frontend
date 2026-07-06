@@ -1,41 +1,96 @@
-import type { User } from '../../types'
+import type { AuthUser } from '../../types'
 import { mockDelay } from './mockClient'
 
 export interface LoginResult {
-  user: User
+  user: AuthUser
   token: string
+  refreshToken?: string
 }
 
-const MOCK_ACCOUNTS: Array<{ email: string; password: string; user: User }> = [
+const MOCK_ACCOUNTS: Array<{ email: string; password: string; user: AuthUser }> = [
   {
     email: 'visitor@fairpilot.io',
     password: 'password',
-    user: { id: 1, email: 'visitor@fairpilot.io', name: '김민수', phone: '010-1111-1111', role: 'VISITOR', deletedAt: null },
+    user: {
+      id: 1,
+      email: 'visitor@fairpilot.io',
+      name: '김민수',
+      phone: '010-1111-1111',
+      role: 'VISITOR',
+      accountStatus: 'ACTIVE',
+      isDeleted: false,
+      assignedExhibitionIds: [],
+    },
   },
   {
     email: 'admin@fairpilot.io',
     password: 'password',
-    user: { id: 2, email: 'admin@fairpilot.io', name: '김운영', phone: '010-2222-2222', role: 'EXPO_ADMIN', deletedAt: null },
+    user: {
+      id: 2,
+      email: 'admin@fairpilot.io',
+      name: '김운영',
+      phone: '010-2222-2222',
+      role: 'EXPO_ADMIN',
+      accountStatus: 'ACTIVE',
+      isDeleted: false,
+      assignedExhibitionIds: [1, 2, 3],
+    },
   },
   {
     email: 'platform@fairpilot.io',
     password: 'password',
-    user: { id: 3, email: 'platform@fairpilot.io', name: '박플랫폼', phone: null, role: 'PLATFORM_ADMIN', deletedAt: null },
+    user: {
+      id: 3,
+      email: 'platform@fairpilot.io',
+      name: '박플랫폼',
+      phone: null,
+      role: 'PLATFORM_ADMIN',
+      accountStatus: 'ACTIVE',
+      isDeleted: false,
+      assignedExhibitionIds: [],
+    },
   },
   {
     email: 'accountant@fairpilot.io',
     password: 'password',
-    user: { id: 4, email: 'accountant@fairpilot.io', name: '이회계', phone: null, role: 'ACCOUNTANT', deletedAt: null },
+    user: {
+      id: 4,
+      email: 'accountant@fairpilot.io',
+      name: '이회계',
+      phone: null,
+      role: 'ACCOUNTANT',
+      accountStatus: 'ACTIVE',
+      isDeleted: false,
+      assignedExhibitionIds: [],
+    },
   },
   {
     email: 'staff@fairpilot.io',
     password: 'password',
-    user: { id: 5, email: 'staff@fairpilot.io', name: '최스태프', phone: null, role: 'STAFF', deletedAt: null },
+    user: {
+      id: 5,
+      email: 'staff@fairpilot.io',
+      name: '최스태프',
+      phone: null,
+      role: 'STAFF',
+      accountStatus: 'ACTIVE',
+      isDeleted: false,
+      assignedExhibitionIds: [1, 2],
+    },
   },
   {
     email: 'exhibitor@fairpilot.io',
     password: 'password',
-    user: { id: 6, email: 'exhibitor@fairpilot.io', name: '정참가', phone: null, role: 'EXHIBITOR', deletedAt: null },
+    user: {
+      id: 6,
+      email: 'exhibitor@fairpilot.io',
+      name: '정참가',
+      phone: null,
+      role: 'EXHIBITOR',
+      accountStatus: 'ACTIVE',
+      isDeleted: false,
+      assignedExhibitionIds: [],
+    },
   },
 ]
 
@@ -79,13 +134,15 @@ export async function signup(input: SignupInput): Promise<LoginResult> {
     throw new Error('이미 가입된 이메일입니다.')
   }
 
-  const newUser: User = {
+  const newUser: AuthUser = {
     id: MOCK_ACCOUNTS.length + 1,
     email,
     name,
     phone: input.phone.trim() || null,
     role: 'VISITOR',
-    deletedAt: null,
+    accountStatus: 'ACTIVE',
+    isDeleted: false,
+    assignedExhibitionIds: [],
   }
 
   MOCK_ACCOUNTS.push({ email, password: input.password, user: newUser })

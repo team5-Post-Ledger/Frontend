@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type { AxiosError, AxiosRequestConfig } from 'axios'
+import type { ApiErrorCode } from '../../types'
 import { getToken } from '../auth'
 
 // 2번 개발자 API 명세서 v2 기준 4개 백엔드 모듈. vite.config.ts의 server.proxy 접두어와 1:1로 대응한다.
@@ -10,6 +11,19 @@ interface ApiEnvelope<T> {
   success: boolean
   data: T
   message: string | null
+  code?: ApiErrorCode
+}
+
+export class ApiError extends Error {
+  code?: ApiErrorCode
+  status?: number
+
+  constructor(message: string, options: { code?: ApiErrorCode; status?: number } = {}) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = options.code
+    this.status = options.status
+  }
 }
 
 const client = axios.create()
@@ -26,8 +40,10 @@ client.interceptors.response.use(
   (response) => {
     const envelope = response.data as ApiEnvelope<unknown>
     if (!envelope.success) {
-      // TODO(연동): 에러 응답에 message 외 code 필드가 있는지 등 실제 형태 미실측 — 확인되면 보강.
-      throw new Error(envelope.message ?? '요청 처리에 실패했습니다.')
+      throw new ApiError(envelope.message ?? '요청 처리에 실패했습니다.', {
+        code: envelope.code,
+        status: response.status,
+      })
     }
     response.data = envelope.data
     return response
@@ -36,6 +52,15 @@ client.interceptors.response.use(
     // TODO(연동): 401(UNAUTHORIZED) 시 refreshToken으로 재시도하는 로직은 로그인 응답에서
     // refreshToken을 실제로 저장하기 시작한 뒤(lib/api/auth.ts의 login TODO 참고) 추가한다.
     // 지금은 저장된 refreshToken이 없어 재시도할 수 없으므로 그대로 실패 처리한다.
+    const envelope = error.response?.data as Partial<ApiEnvelope<unknown>> | undefined
+    if (envelope?.message || envelope?.code) {
+      return Promise.reject(
+        new ApiError(envelope.message ?? '요청 처리에 실패했습니다.', {
+          code: envelope.code,
+          status: error.response?.status,
+        }),
+      )
+    }
     return Promise.reject(error)
   },
 )

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import type { User } from '../types/entities'
+import type { AuthUser } from '../types/entities'
 
 export function UserMenuPopover({
   user,
   consoleTo,
   onLogout,
 }: {
-  user: User
+  user: AuthUser
   /** VISITOR가 아닌 계정의 콘솔 홈 경로. 있으면 "내 콘솔로" 항목을 노출한다. */
   consoleTo?: string
   onLogout: () => void

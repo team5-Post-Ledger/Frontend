@@ -1,4 +1,4 @@
-import type { MovementMode } from '../../types'
+import type { MovementMode, PaymentGatewayProvider } from '../../types'
 import { formatSlotRange } from '../../features/timeSlot/format'
 import { createOnsitePaymentForReservation, createPaidReservation } from './mockDb'
 import { getExhibition } from './exhibitions'
@@ -33,6 +33,7 @@ export interface PaymentSubmissionInput {
   attendees: PaymentAttendeeInput[]
   amount: number
   paymentMethod: PaymentMethod
+  gatewayProvider?: PaymentGatewayProvider
 }
 
 export interface PaymentSubmissionResult {
