@@ -61,11 +61,20 @@ const LEVEL_HEAT_COLOR: Record<CongestionPointLevel, string> = {
   HIGH: 'var(--color-danger)',
   FULL: 'var(--color-danger)',
 }
+// 번짐 원의 지름(캔버스 가로폭 대비 %) — 고정 px 블러를 걷어내면서 블러가 바깥으로 퍼뜨려주던
+// 몫을 원 크기로 흡수(기존 16/22/28/32에서 상향). 눈으로 보고 튜닝하는 값.
 const LEVEL_HEAT_SIZE_PCT: Record<CongestionPointLevel, number> = {
-  LOW: 16,
-  MEDIUM: 22,
-  HIGH: 28,
-  FULL: 32,
+  LOW: 22,
+  MEDIUM: 30,
+  HIGH: 38,
+  FULL: 44,
+}
+
+// 가우시안 블러의 부드러운 감쇠를 그라디언트 스톱만으로 근사한다. filter: blur()는 반경이 px
+// 고정이라 작은(모바일) 캔버스에서 원을 통째로 흩어버려 오버레이가 사라졌다 — 모든 치수를 %로
+// 통일해 화면 크기·줌 배율과 무관하게 같은 비율로 번지게 한다.
+function heatGradient(color: string) {
+  return `radial-gradient(circle closest-side, ${color} 0%, color-mix(in srgb, ${color} 65%, transparent) 35%, color-mix(in srgb, ${color} 30%, transparent) 60%, color-mix(in srgb, ${color} 10%, transparent) 80%, transparent 100%)`
 }
 const LEVEL_HEAT_OPACITY: Record<CongestionPointLevel, number> = {
   LOW: 0.26,
@@ -131,13 +140,14 @@ function CongestionHeatOverlay({
         return (
           <div
             key={booth.boothId}
-            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl"
+            className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{
               left: `${centerXPct}%`,
               top: `${centerYPct}%`,
+              // 캔버스가 4:3이라 width/height를 각각 %로 주면 타원이 된다 — 가로폭 기준 정원으로 고정.
               width: `${size}%`,
-              height: `${size}%`,
-              background: `radial-gradient(circle, ${LEVEL_HEAT_COLOR[point.level]} 0%, transparent 72%)`,
+              aspectRatio: '1 / 1',
+              background: heatGradient(LEVEL_HEAT_COLOR[point.level]),
               opacity: LEVEL_HEAT_OPACITY[point.level],
             }}
           />
