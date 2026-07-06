@@ -40,7 +40,7 @@ export default function SignupPage() {
 
     try {
       const result = await signup({ email: email.trim(), password, name: name.trim(), phone: phone.trim() })
-      storeLogin(result.user, result.token)
+      storeLogin(result.user, result.token, result.refreshToken)
       setSignedUpRole(result.user.role)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '회원가입에 실패했습니다.')

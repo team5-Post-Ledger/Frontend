@@ -1,5 +1,42 @@
 import type { Booth, BoothCategory, BoothEmbedding } from '../../types'
+import { USE_MOCK } from './config'
+import { apiGet } from './httpClient'
 import { mockDelay } from './mockClient'
+
+// 실 백엔드 GET /api/exhibitions/{id}/booths 응답(엔티티). tags는 "AI,머신비전,로보틱스" 콤마문자열이라
+// 프론트 string[]로 분해한다(2026-07-06 실측).
+interface BoothDto {
+  id: number
+  exhibitionId: number
+  exhibitorId: number
+  categoryId: number | null
+  name: string
+  description: string
+  tags: string | null
+  posX: number
+  posY: number
+  floor: number
+}
+
+function adaptBooth(dto: BoothDto): Booth {
+  return {
+    id: dto.id,
+    exhibitionId: dto.exhibitionId,
+    exhibitorId: dto.exhibitorId,
+    categoryId: dto.categoryId ?? null,
+    name: dto.name,
+    description: dto.description,
+    tags: dto.tags ? dto.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : [],
+    posX: dto.posX,
+    posY: dto.posY,
+    floor: dto.floor,
+  }
+}
+
+async function fetchBooths(exhibitionId: number): Promise<Booth[]> {
+  const dtos = await apiGet<BoothDto[]>('visitor', `/api/exhibitions/${exhibitionId}/booths`)
+  return dtos.map(adaptBooth)
+}
 
 const MOCK_CATEGORIES: BoothCategory[] = [
   { id: 1, exhibitionId: 1, name: 'AI/ML' },
@@ -260,11 +297,16 @@ export async function getBoothCategories(exhibitionId?: number): Promise<BoothCa
 }
 
 export async function getBooths(exhibitionId?: number): Promise<Booth[]> {
-  return mockDelay(exhibitionId === undefined ? mockBooths : mockBooths.filter((booth) => booth.exhibitionId === exhibitionId))
+  // 실 백엔드는 박람회 단위 조회만 있다(전체 부스 엔드포인트 없음) → exhibitionId 없으면 mock 유지.
+  if (USE_MOCK || exhibitionId === undefined) {
+    return mockDelay(exhibitionId === undefined ? mockBooths : mockBooths.filter((booth) => booth.exhibitionId === exhibitionId))
+  }
+  return fetchBooths(exhibitionId)
 }
 
 export async function getBoothsByExhibition(exhibitionId: number): Promise<Booth[]> {
-  return mockDelay(mockBooths.filter((booth) => booth.exhibitionId === exhibitionId))
+  if (USE_MOCK) return mockDelay(mockBooths.filter((booth) => booth.exhibitionId === exhibitionId))
+  return fetchBooths(exhibitionId)
 }
 
 export async function getBoothEmbeddings(exhibitionId?: number): Promise<BoothEmbedding[]> {

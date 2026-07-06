@@ -1,9 +1,11 @@
 import type { MovementMode, PaymentGatewayProvider } from '../../types'
 import { formatSlotRange } from '../../features/timeSlot/format'
+import { USE_MOCK } from './config'
+import { apiPost } from './httpClient'
 import { createOnsitePaymentForReservation, createPaidReservation } from './mockDb'
 import { getExhibition } from './exhibitions'
 import { mockDelay } from './mockClient'
-import type { ReservationListItem } from './reservations'
+import { createReservation, type ReservationListItem } from './reservations'
 import { getTicketTypes } from './ticketTypes'
 import { getTimeSlots } from './timeSlots'
 
@@ -46,14 +48,59 @@ export interface PaymentSubmissionResult {
   failureReason?: string
 }
 
+interface PaymentInitiateResult {
+  orderId: string
+  amount: number
+}
+
+// 실 백엔드 결제 플로우(2026-07-06 실측으로 검증한 3단계):
+//   1) POST /api/reservations         → 예약 생성(PENDING) + reservationId
+//   2) POST /api/payments/initiate    → READY Payment 생성 + orderId (pgProvider: "TOSS"|"PORTONE")
+//   3) POST /api/reservations/{id}/confirm-paid → PAID 확정 (개발용 샷컷: 실 PG 결제창/webhook 대체)
+// 실 PG SDK 연동 시 3)을 PortOne/Toss 위젯 + webhook 확정으로 교체한다.
+async function submitPaymentReal(input: PaymentSubmissionInput): Promise<PaymentSubmissionResult> {
+  try {
+    const reservation = await createReservation({
+      exhibitionId: input.exhibitionId,
+      timeSlotId: input.timeSlotId,
+      ticketTypeId: input.ticketTypeId,
+      movementMode: input.movementMode,
+      groupSize: input.groupSize,
+      attendees: input.attendees.map((attendee) => ({
+        name: attendee.name,
+        phone: attendee.phone,
+        email: attendee.email,
+        isGroupLeader: attendee.isGroupLeader,
+      })),
+    })
+
+    await apiPost<PaymentInitiateResult>('visitor', '/api/payments/initiate', {
+      reservationId: reservation.reservationId,
+      exhibitionId: input.exhibitionId,
+      amount: input.amount,
+      pgProvider: input.gatewayProvider ?? 'PORTONE',
+    })
+
+    await apiPost<null>('visitor', `/api/reservations/${reservation.reservationId}/confirm-paid`)
+
+    return {
+      success: true,
+      reservationId: reservation.reservationId,
+      reservationCode: `RSV-${reservation.reservationId}`,
+      paidAt: new Date().toISOString(),
+      amount: input.amount,
+    }
+  } catch (error) {
+    // SLOT_SOLD_OUT(409)·검증 실패 등은 httpClient가 ApiError(message)로 던진다 → 화면 실패 사유로 표시.
+    return { success: false, failureReason: error instanceof Error ? error.message : '결제 처리에 실패했습니다.' }
+  }
+}
+
 export async function submitPayment(input: PaymentSubmissionInput): Promise<PaymentSubmissionResult> {
+  if (!USE_MOCK) return submitPaymentReal(input)
+
   /**
-   * TODO(포트원 연동 지점): 백엔드 PG 연동이 준비되면 이 함수 본문을 아래 흐름으로 교체한다.
-   * 1. POST /api/reservations로 예약(PENDING)을 먼저 생성한다 (group_size, movement_mode, attendees 포함).
-   * 2. 포트원(PortOne) SDK로 결제창을 호출해 결제 수단별 인증·승인을 진행한다.
-   * 3. 콜백으로 받은 paymentId(imp_uid/merchant_uid)를 POST /api/payments로 서버에 전달해 금액을 재검증한다.
-   * 4. 최종 승인 여부는 POST /api/payments/webhook(PG → 서버) 결과로 확정한다(클라이언트 응답만 믿지 않는다).
-   * 지금은 백엔드가 없으므로 위 과정을 거치지 않고 PG 응답을 모킹해 성공/실패만 흉내낸다.
+   * (mock) 백엔드 없이 PG 응답을 모킹해 성공/실패만 흉내낸다. USE_MOCK=false면 위 submitPaymentReal이 실행된다.
    */
   const isSuccess = Math.random() > 0.15
 

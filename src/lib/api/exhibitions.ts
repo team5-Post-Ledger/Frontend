@@ -1,13 +1,53 @@
-import type { Exhibition, ExhibitionAdmin } from '../../types'
+import type { Exhibition, ExhibitionAdmin, ExhibitionStatus } from '../../types'
 import { platformExhibitionAdminSeed, platformExhibitionSeed } from '../mock/platformSeed'
+import { USE_MOCK } from './config'
+import { ApiError, apiGet } from './httpClient'
 import { mockDelay } from './mockClient'
 
 let MOCK_EXHIBITIONS: Exhibition[] = platformExhibitionSeed.map((exhibition) => ({ ...exhibition }))
 
-// GET /api/exhibitions는 ALL 역할에 공개되는 대신 OPEN 박람회만 반환한다(§6.1).
+// 실 백엔드 GET /api/exhibitions 응답(엔티티). 프론트 Exhibition에 없는 createdAt/updatedAt/deleted는 버리고,
+// 응답에 없는 floorMapMeta·deletedAt·bannerImageUrl은 null로 폴백한다(2026-07-06 실측).
+interface ExhibitionDto {
+  id: number
+  title: string
+  slug: string
+  venue: string
+  address: string
+  startDate: string
+  endDate: string
+  status: ExhibitionStatus
+  enforceStaffQualification: boolean
+  createdBy: number
+  deleted?: boolean
+  floorMapMeta?: Record<string, unknown> | null
+  bannerImageUrl?: string | null
+}
+
+function adaptExhibition(dto: ExhibitionDto): Exhibition {
+  return {
+    id: dto.id,
+    title: dto.title,
+    slug: dto.slug,
+    venue: dto.venue,
+    address: dto.address,
+    floorMapMeta: dto.floorMapMeta ?? null,
+    startDate: dto.startDate,
+    endDate: dto.endDate,
+    status: dto.status,
+    enforceStaffQualification: dto.enforceStaffQualification,
+    createdBy: dto.createdBy,
+    deletedAt: null,
+    bannerImageUrl: dto.bannerImageUrl ?? null,
+  }
+}
+
+// GET /api/exhibitions는 전체(findAll)를 반환하므로 공개 목록용으로 OPEN만 남긴다(§6.1).
 // DRAFT(미게시)·CLOSED(종료)는 이 목록에서 제외된다.
 export async function getExhibitions(): Promise<Exhibition[]> {
-  return mockDelay(MOCK_EXHIBITIONS.filter((exhibition) => exhibition.status === 'OPEN'))
+  if (USE_MOCK) return mockDelay(MOCK_EXHIBITIONS.filter((exhibition) => exhibition.status === 'OPEN'))
+  const dtos = await apiGet<ExhibitionDto[]>('visitor', '/api/exhibitions')
+  return dtos.map(adaptExhibition).filter((exhibition) => exhibition.status === 'OPEN')
 }
 
 // §5.1 exhibition_admin — EXPO_ADMIN의 행사 배정 매핑(N:M, 한 admin이 여러 행사를 담당할 수 있다).
@@ -25,11 +65,19 @@ export async function getMyExhibitions(userId: number): Promise<Exhibition[]> {
 }
 
 export async function getExhibition(id: number): Promise<Exhibition | null> {
-  return mockDelay(MOCK_EXHIBITIONS.find((exhibition) => exhibition.id === id) ?? null)
+  if (USE_MOCK) return mockDelay(MOCK_EXHIBITIONS.find((exhibition) => exhibition.id === id) ?? null)
+  try {
+    return adaptExhibition(await apiGet<ExhibitionDto>('visitor', `/api/exhibitions/${id}`))
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null
+    throw error
+  }
 }
 
+// 백엔드에 추천 전용 엔드포인트가 아직 없어 공개 목록(OPEN)으로 대체한다 — 별도 계약 생기면 교체.
 export async function getRecommendedExhibitions(): Promise<Exhibition[]> {
-  return mockDelay(MOCK_EXHIBITIONS.filter((exhibition) => exhibition.status === 'OPEN'))
+  if (USE_MOCK) return mockDelay(MOCK_EXHIBITIONS.filter((exhibition) => exhibition.status === 'OPEN'))
+  return getExhibitions()
 }
 
 // §5.1 exhibition 컬럼 중 폼으로 수정 가능한 항목만. slug(unique)·floor_map_meta(별도 화면)·

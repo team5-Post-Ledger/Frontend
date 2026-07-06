@@ -33,7 +33,7 @@ export default function LoginPage() {
 
     try {
       const result = await login(email.trim(), password)
-      storeLogin(result.user, result.token)
+      storeLogin(result.user, result.token, result.refreshToken)
       setLoggedInRole(result.user.role)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '로그인에 실패했습니다.')

@@ -8,6 +8,7 @@ import type {
   ReservationSource,
   ReservationStatus,
 } from '../../types'
+import { apiPost } from './httpClient'
 import { mockDelay } from './mockClient'
 import {
   getMockPaymentByReservationId,
@@ -449,6 +450,51 @@ function getReservationItems(exhibitionId?: number): ReservationListItem[] {
     .map(toReservationListItem)
 
   return [...sharedReservations, ...seedReservations]
+}
+
+// ── 예약 생성(실 백엔드) ── payments.ts submitPayment의 실API 경로에서 호출한다.
+// POST /api/reservations. 신원은 httpClient가 X-User-Id 헤더로 싣는다(현 백엔드 계약).
+// 응답 ReservationResponse는 얇아서(reservationId/status/movementMode/groupSize/attendees) 결제 단계엔
+// reservationId만 쓴다. 화면용 상세(제목·슬롯·금액)는 백엔드 DTO 보강 전까지 재구성 불가(§내 예약 mock 유지).
+export interface CreateReservationInput {
+  exhibitionId: number
+  timeSlotId: number
+  ticketTypeId: number | null
+  movementMode: MovementMode
+  groupSize: number
+  attendees: Array<{ name: string; phone?: string | null; email?: string | null; isGroupLeader: boolean }>
+}
+
+export interface CreatedReservation {
+  reservationId: number
+  status: ReservationStatus
+  movementMode: MovementMode
+  groupSize: number
+  attendees: Array<{
+    attendeeId: number
+    name: string
+    groupLeader: boolean
+    ticketQrToken: string | null
+    checkinStatus: CheckinStatus
+    attendeeStatus: AttendeeStatus
+  }>
+}
+
+export async function createReservation(input: CreateReservationInput): Promise<CreatedReservation> {
+  return apiPost<CreatedReservation>('visitor', '/api/reservations', {
+    exhibitionId: input.exhibitionId,
+    timeSlotId: input.timeSlotId,
+    ticketTypeId: input.ticketTypeId,
+    movementMode: input.movementMode,
+    groupSize: input.groupSize,
+    useQueue: false,
+    attendees: input.attendees.map((attendee) => ({
+      name: attendee.name,
+      phone: attendee.phone ?? null,
+      email: attendee.email ?? null,
+      isGroupLeader: attendee.isGroupLeader,
+    })),
+  })
 }
 
 export async function getReservations(exhibitionId?: number): Promise<ReservationListItem[]> {

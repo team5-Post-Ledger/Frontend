@@ -21,6 +21,12 @@ export function getRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_TOKEN_KEY)
 }
 
+// 예약/큐 계열 백엔드 컨트롤러가 신원을 JWT가 아니라 X-User-Id 헤더로 받으므로(현 백엔드 계약),
+// 저장된 로그인 사용자 id를 httpClient가 헤더에 실을 수 있게 노출한다.
+export function getStoredUserId(): number | null {
+  return getStoredUser()?.id ?? null
+}
+
 function setRefreshToken(refreshToken: string | null): void {
   if (refreshToken) {
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
@@ -83,6 +89,13 @@ export function persistSession(user: AuthUser, token: string, refreshToken: stri
   setStoredUser(user)
   setAccessToken(token)
   setRefreshToken(refreshToken)
+}
+
+// 401 → refresh 로 accessToken을 재발급받았을 때, user는 그대로 두고 토큰만 교체한다.
+// 백엔드 refresh 응답은 accessToken과 (회전된) refreshToken을 함께 내려주므로 둘 다 갱신한다.
+export function updateTokens(accessToken: string, refreshToken: string | null): void {
+  setAccessToken(accessToken)
+  if (refreshToken) setRefreshToken(refreshToken)
 }
 
 // 로그아웃 시 세션 삭제의 유일한 경로. user·token·역할 스코프 persist 키를 함께 지운다.

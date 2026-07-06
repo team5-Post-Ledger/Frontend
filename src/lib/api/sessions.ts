@@ -1,5 +1,35 @@
 import type { Session } from '../../types'
+import { USE_MOCK } from './config'
+import { apiGet } from './httpClient'
 import { mockDelay } from './mockClient'
+
+// 실 백엔드 GET /api/exhibitions/{id}/sessions 응답이 프론트 Session과 1:1(2026-07-06 실측).
+// 엔티티의 createdAt/updatedAt 등 잉여 필드는 화면에서 안 쓰므로 필요한 필드만 추린다.
+interface SessionDto {
+  id: number
+  exhibitionId: number
+  hostExhibitorId: number | null
+  title: string
+  description: string
+  location: string
+  startAt: string
+  endAt: string
+  capacity: number
+}
+
+function adaptSession(dto: SessionDto): Session {
+  return {
+    id: dto.id,
+    exhibitionId: dto.exhibitionId,
+    hostExhibitorId: dto.hostExhibitorId ?? null,
+    title: dto.title,
+    description: dto.description,
+    location: dto.location,
+    startAt: dto.startAt,
+    endAt: dto.endAt,
+    capacity: dto.capacity,
+  }
+}
 
 let mockSessions: Session[] = [
   {
@@ -62,7 +92,9 @@ let mockSessions: Session[] = [
 let nextSessionId = 6
 
 export async function getSessions(exhibitionId: number): Promise<Session[]> {
-  return mockDelay(mockSessions.filter((session) => session.exhibitionId === exhibitionId))
+  if (USE_MOCK) return mockDelay(mockSessions.filter((session) => session.exhibitionId === exhibitionId))
+  const dtos = await apiGet<SessionDto[]>('visitor', `/api/exhibitions/${exhibitionId}/sessions`)
+  return dtos.map(adaptSession)
 }
 
 export type SessionInput = Omit<Session, 'id' | 'exhibitionId'>

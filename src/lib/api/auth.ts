@@ -1,4 +1,6 @@
 import type { AuthUser } from '../../types'
+import { USE_MOCK } from './config'
+import { apiGet, apiPost } from './httpClient'
 import { mockDelay } from './mockClient'
 
 export interface LoginResult {
@@ -94,10 +96,32 @@ const MOCK_ACCOUNTS: Array<{ email: string; password: string; user: AuthUser }> 
   },
 ]
 
-// TODO(연동): 실제 POST /api/auth/login 응답은 { accessToken, refreshToken }뿐이고 user 정보가 없다.
-// role을 JWT payload 디코드로 얻을 수 있는지, 아니면 별도 프로필 조회가 필요한지 실측 후
-// 이 함수의 반환값 구성 방식을 다시 정한다 — 실제 연동 담당자가 확인.
+// 실 백엔드 응답(2026-07-06 실측):
+//   POST /api/auth/login → { accessToken(JWT), refreshToken(UUID) } (user 정보 없음)
+//   GET  /api/auth/me    → { id,email,name,phone,role,accountStatus,isDeleted,assignedExhibitionIds } === AuthUser
+// user는 로그인 응답에 없으므로 토큰을 받은 직후 /me로 확정한다. /me의 응답 필드가 AuthUser와
+// 1:1이라 별도 어댑터가 필요 없다.
+interface LoginTokens {
+  accessToken: string
+  refreshToken: string
+}
+
 export async function login(email: string, password: string): Promise<LoginResult> {
+  if (USE_MOCK) return mockLogin(email, password)
+
+  const trimmedEmail = email.trim()
+  const tokens = await apiPost<LoginTokens>('visitor', '/api/auth/login', {
+    email: trimmedEmail,
+    password,
+  })
+  // 아직 저장 전이라 요청 인터셉터가 토큰을 못 붙인다 → 방금 받은 accessToken을 명시적으로 실어 /me 호출.
+  const user = await apiGet<AuthUser>('visitor', '/api/auth/me', {
+    headers: { Authorization: `Bearer ${tokens.accessToken}` },
+  })
+  return { user, token: tokens.accessToken, refreshToken: tokens.refreshToken }
+}
+
+async function mockLogin(email: string, password: string): Promise<LoginResult> {
   if (!password) {
     throw new Error('비밀번호를 입력해주세요.')
   }
@@ -108,7 +132,7 @@ export async function login(email: string, password: string): Promise<LoginResul
     throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.')
   }
 
-  return mockDelay({ user: account.user, token: 'mock-jwt-token' })
+  return mockDelay({ user: account.user, token: 'mock-jwt-token', refreshToken: 'mock-refresh-token' })
 }
 
 export interface SignupInput {
@@ -118,7 +142,22 @@ export interface SignupInput {
   phone: string
 }
 
+// 실 백엔드 POST /api/auth/signup은 성공 시 data:null(토큰 없음, VISITOR만 가능). 가입 후 곧바로
+// login()을 호출해 세션(토큰+user)을 확보하는 게 실제 계약이라 mock도 동일한 흐름으로 맞춘다.
 export async function signup(input: SignupInput): Promise<LoginResult> {
+  if (USE_MOCK) return mockSignup(input)
+
+  const email = input.email.trim()
+  await apiPost<null>('visitor', '/api/auth/signup', {
+    email,
+    password: input.password,
+    name: input.name.trim(),
+    phone: input.phone.trim() || null,
+  })
+  return login(email, input.password)
+}
+
+async function mockSignup(input: SignupInput): Promise<LoginResult> {
   const email = input.email.trim()
   const name = input.name.trim()
 
@@ -148,7 +187,16 @@ export async function signup(input: SignupInput): Promise<LoginResult> {
   MOCK_ACCOUNTS.push({ email, password: input.password, user: newUser })
   await mockDelay(null)
 
-  // 실제 POST /api/auth/signup은 토큰을 내려주지 않는다(성공 시 data: null) — 가입 후
-  // 별도 로그인 호출로 세션을 받아오는 게 실제 계약이라 mock도 동일한 흐름으로 맞춘다.
-  return login(email, input.password)
+  return mockLogin(email, input.password)
+}
+
+// 로그아웃: 서버의 refreshToken을 무효화한다(@RequestParam refreshToken). best-effort —
+// 실패해도 클라이언트 세션은 authStore가 이미 정리하므로 사용자 흐름을 막지 않는다.
+export async function logout(refreshToken: string | null): Promise<void> {
+  if (USE_MOCK || !refreshToken) return
+  try {
+    await apiPost<null>('visitor', '/api/auth/logout', null, { params: { refreshToken } })
+  } catch {
+    // 무시(best-effort).
+  }
 }

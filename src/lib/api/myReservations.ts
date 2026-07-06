@@ -1,3 +1,8 @@
+// ⚠ 의도적으로 mock 유지(USE_MOCK 토글과 무관하게 항상 mock).
+// 실 백엔드 GET /api/reservations/me는 Page<ReservationResponse>인데 ReservationResponse가 너무 얇다
+// (reservationId/status/movementMode/groupSize/attendees만). exhibitionId·제목·슬롯·티켓명·금액·생성일이
+// 없어 이 화면(내 예약/티켓)을 실API로 재구성할 수 없다. 백엔드 DTO 보강 후 변환한다
+// (docs/database/current-contract.md §Phase2 보고 1). 부분 컷오버로 안전하게 mock을 남긴다.
 import type { AttendeeStatus, CheckinStatus, MovementMode, ReservationStatus } from '../../types'
 import { mockDelay } from './mockClient'
 import {

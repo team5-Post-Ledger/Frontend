@@ -1,5 +1,31 @@
 import type { TimeSlot } from '../../types'
+import { USE_MOCK } from './config'
+import { apiGet } from './httpClient'
 import { mockDelay } from './mockClient'
+
+// time-slots 컨트롤러는 admin 모듈(api-expo-admin)에만 있어 'expo-admin' 프록시로 조회한다.
+// GET은 @PreAuthorize 없어 인증만 되면 VISITOR도 조회 가능(2026-07-06 실측). 응답 필드가 프론트
+// TimeSlot과 1:1이고 availableCount만 추가라 그대로 매핑한다.
+interface TimeSlotDto {
+  id: number
+  exhibitionId: number
+  startAt: string
+  endAt: string
+  capacity: number
+  reservedCount: number
+  availableCount?: number
+}
+
+function adaptTimeSlot(dto: TimeSlotDto): TimeSlot {
+  return {
+    id: dto.id,
+    exhibitionId: dto.exhibitionId,
+    startAt: dto.startAt,
+    endAt: dto.endAt,
+    capacity: dto.capacity,
+    reservedCount: dto.reservedCount,
+  }
+}
 
 let mockTimeSlots: TimeSlot[] = [
   { id: 1, exhibitionId: 1, startAt: '2026-09-01T10:00:00', endAt: '2026-09-01T13:00:00', capacity: 200, reservedCount: 72 },
@@ -17,7 +43,9 @@ let mockTimeSlots: TimeSlot[] = [
 let nextTimeSlotId = 11
 
 export async function getTimeSlots(exhibitionId: number): Promise<TimeSlot[]> {
-  return mockDelay(mockTimeSlots.filter((slot) => slot.exhibitionId === exhibitionId))
+  if (USE_MOCK) return mockDelay(mockTimeSlots.filter((slot) => slot.exhibitionId === exhibitionId))
+  const dtos = await apiGet<TimeSlotDto[]>('expo-admin', `/api/exhibitions/${exhibitionId}/time-slots`)
+  return dtos.map(adaptTimeSlot)
 }
 
 // reservedCount는 폼으로 직접 편집하지 않는다(§3.2) — 예약 생성/취소 시 원자 UPDATE로만 증감하는

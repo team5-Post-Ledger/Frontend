@@ -1,5 +1,21 @@
 import type { TicketType } from '../../types'
+import { USE_MOCK } from './config'
+import { apiGet } from './httpClient'
 import { mockDelay } from './mockClient'
+
+// 실 백엔드 GET /api/exhibitions/{id}/ticket-types 응답. price는 BigDecimal(JSON number),
+// quota는 number(2026-07-06 실측). 엔티티의 createdAt/updatedAt은 화면에서 안 써서 버린다.
+interface TicketTypeDto {
+  id: number
+  exhibitionId: number
+  name: string
+  price: number
+  quota: number
+}
+
+function adaptTicketType(dto: TicketTypeDto): TicketType {
+  return { id: dto.id, exhibitionId: dto.exhibitionId, name: dto.name, price: dto.price, quota: dto.quota }
+}
 
 let mockTicketTypes: TicketType[] = [
   { id: 1, exhibitionId: 1, name: '무료 입장', price: 0, quota: 5000 },
@@ -31,7 +47,9 @@ const mockSoldCounts: Record<number, number> = {
 let nextTicketTypeId = 10
 
 export async function getTicketTypes(exhibitionId: number): Promise<TicketType[]> {
-  return mockDelay(mockTicketTypes.filter((ticket) => ticket.exhibitionId === exhibitionId))
+  if (USE_MOCK) return mockDelay(mockTicketTypes.filter((ticket) => ticket.exhibitionId === exhibitionId))
+  const dtos = await apiGet<TicketTypeDto[]>('visitor', `/api/exhibitions/${exhibitionId}/ticket-types`)
+  return dtos.map(adaptTicketType)
 }
 
 export function getRemainingQuota(ticketType: TicketType): number {
