@@ -14,7 +14,7 @@ import {
 import { useCongestionLive } from '../../features/congestion/hooks'
 import { useExhibitionCheckinTrend, useExhibitionOperationsSummary } from '../../features/exhibitionDashboard/hooks'
 import { useExhibition } from '../../features/exhibition/hooks'
-import { getAdminHubGroups } from '../../app/layouts/adminNav'
+import { ADMIN_HUB_SHORTCUTS } from '../../app/layouts/adminNav'
 import { formatCurrency, formatDateRange } from '../../lib/format'
 import type { ExhibitionStatus } from '../../types'
 
@@ -122,7 +122,7 @@ export default function ExhibitionDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="예약 인원" icon={<span className="text-primary"><PeopleIcon /></span>} isLoading={summary.isLoading} isError={summary.isError}>
+        <StatCard label="예약 인원" to="/admin/reservations" icon={<span className="text-primary"><PeopleIcon /></span>} isLoading={summary.isLoading} isError={summary.isError}>
           {summary.data && (
             <>
               <div className="flex items-baseline gap-1 text-[28px] font-extrabold leading-none tracking-tight text-ink">
@@ -134,7 +134,7 @@ export default function ExhibitionDashboardPage() {
           )}
         </StatCard>
 
-        <StatCard label="체크인(입장)" icon={<span className="text-primary"><CheckinIcon /></span>} isLoading={summary.isLoading} isError={summary.isError}>
+        <StatCard label="체크인(입장)" to="/admin/checkin" icon={<span className="text-primary"><CheckinIcon /></span>} isLoading={summary.isLoading} isError={summary.isError}>
           {summary.data && (
             <>
               <div className="flex items-baseline gap-1 text-[28px] font-extrabold leading-none tracking-tight text-ink">
@@ -153,7 +153,7 @@ export default function ExhibitionDashboardPage() {
           )}
         </StatCard>
 
-        <StatCard label="현재 혼잡도" isLoading={congestion.isLoading} isError={congestion.isError}>
+        <StatCard label="현재 혼잡도" to="/admin/stats/flow" isLoading={congestion.isLoading} isError={congestion.isError}>
           {congestionAvailability === 'LIVE' ? (
             congestion.data &&
             (congestion.data.level !== null ? (
@@ -168,7 +168,7 @@ export default function ExhibitionDashboardPage() {
           )}
         </StatCard>
 
-        <StatCard label="매출 요약" icon={<span className="text-primary"><RevenueIcon /></span>} isLoading={summary.isLoading} isError={summary.isError}>
+        <StatCard label="매출 요약" to="/admin/stats" icon={<span className="text-primary"><RevenueIcon /></span>} isLoading={summary.isLoading} isError={summary.isError}>
           {summary.data && (
             <>
               <div className="text-[28px] font-extrabold leading-none tracking-tight text-ink">{formatCurrency(summary.data.grossRevenue)}</div>
@@ -180,9 +180,10 @@ export default function ExhibitionDashboardPage() {
         </StatCard>
       </div>
 
-      <Panel title="바로가기" subtitle="운영 화면으로 바로 이동합니다.">
-        <HubNavGrid groups={getAdminHubGroups(exhibitionId)} />
-      </Panel>
+      <section>
+        <h2 className="mb-2.5 text-sm font-bold text-ink">자주 여는 관리</h2>
+        <HubNavGrid items={ADMIN_HUB_SHORTCUTS} />
+      </section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr]">
         <Panel title="시간대별 입장" subtitle="체크인(GATE ENTRY) 기준 · 1시간 단위">

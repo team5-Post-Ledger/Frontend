@@ -48,13 +48,8 @@ export const ADMIN_OVERFLOW_GROUPS: ConsoleNavGroup[] = [
   { label: '교육', items: [EDUCATION] },
 ]
 
-// 운영 허브(대시보드) 바로가기 카드용 — 전체 그룹을 노출한다.
-export function getAdminHubGroups(exhibitionId: number): ConsoleNavGroup[] {
-  return [
-    { label: '운영', items: [dashboardItem(exhibitionId), RESERVATIONS, CHECKIN] },
-    { label: '마스터', items: MASTER_ITEMS },
-    { label: '인력', items: HR_ITEMS },
-    { label: '분석', items: [STATS, FLOW] },
-    { label: '교육', items: [EDUCATION] },
-  ]
-}
+// 운영 허브(대시보드)의 슬림 "자주 여는 관리" 바로가기. 더보기에 숨은 마스터 항목 중
+// 자주 여는 4개(슬롯 제외). 나머지(슬롯·스태프·참가기업·LMS·동선)는 상단바 더보기/KPI로 도달.
+export const ADMIN_HUB_SHORTCUTS: ConsoleNavItem[] = MASTER_ITEMS.filter(
+  (item) => item.to !== '/admin/time-slots',
+)

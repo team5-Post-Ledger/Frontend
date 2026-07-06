@@ -1,8 +1,8 @@
 import { Link } from 'react-router'
-import type { ConsoleNavGroup } from './ConsoleTopBar'
+import type { ConsoleNavItem } from './ConsoleTopBar'
 
 interface HubNavGridProps {
-  groups: ConsoleNavGroup[]
+  items: ConsoleNavItem[]
 }
 
 function ArrowIcon() {
@@ -23,27 +23,20 @@ function ArrowIcon() {
   )
 }
 
-// 운영 허브(대시보드)의 그룹별 바로가기 버튼카드. 예전 사이드바에서 하던 탐색을
-// "한 화면 버튼"으로 대체한다. 라우트 이동만 하고 데이터는 다루지 않는다.
-export function HubNavGrid({ groups }: HubNavGridProps) {
+// 운영 허브(대시보드)의 슬림 바로가기 한 줄. 상단바가 전체 네비를 담당하므로
+// 여기서는 더보기에 숨은 마스터 항목만 카드로 노출한다(그룹 헤더 없이 flat).
+export function HubNavGrid({ items }: HubNavGridProps) {
   return (
-    <div className="flex flex-col gap-5">
-      {groups.map((group) => (
-        <div key={group.label}>
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted">{group.label}</div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {group.items.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="group flex items-center justify-between gap-2 border border-line bg-white px-4 py-3.5 text-sm font-semibold text-ink transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                {item.label}
-                <ArrowIcon />
-              </Link>
-            ))}
-          </div>
-        </div>
+    <div className="flex flex-wrap gap-3">
+      {items.map((item) => (
+        <Link
+          key={item.to}
+          to={item.to}
+          className="group flex min-w-[130px] flex-1 items-center justify-between gap-2 border border-line bg-white px-4 py-3 text-sm font-semibold text-ink transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          {item.label}
+          <ArrowIcon />
+        </Link>
       ))}
     </div>
   )
