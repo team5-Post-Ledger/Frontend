@@ -112,22 +112,22 @@ export default function PayPage() {
           참석자별 모바일 티켓 QR은 <span className="font-semibold text-ink">내 티켓</span>에서 확인할 수 있습니다. 입장 시 QR을 제시해주세요.
         </div>
 
-        <div className="flex w-full flex-col gap-2.5 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => handleDone('/my/reservations')}
-            className="flex h-12 flex-1 items-center justify-center bg-primary text-sm font-bold text-white transition-colors hover:bg-primary-hover"
-          >
-              내 예약 확인하기
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDone('/')}
-            className="flex h-12 flex-1 items-center justify-center border border-line text-sm font-bold text-ink transition-colors hover:border-primary"
-          >
-            홈으로
-          </button>
-        </div>
+          <div className="flex w-full flex-col gap-3 sm:flex-row">
+              <button
+                  type="button"
+                  onClick={() => handleDone('/my/reservations')}
+                  className="flex min-h-14 flex-1 items-center justify-center bg-primary px-6 py-4 text-base font-bold text-white transition-colors hover:bg-primary-hover"
+              >
+                  내 예약 확인하기
+              </button>
+              <button
+                  type="button"
+                  onClick={() => handleDone('/')}
+                  className="flex min-h-14 flex-1 items-center justify-center border border-line px-6 py-4 text-base font-bold text-ink transition-colors hover:border-primary"
+              >
+                  홈으로
+              </button>
+          </div>
       </div>
     )
   }
